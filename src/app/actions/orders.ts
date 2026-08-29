@@ -136,7 +136,7 @@ async function notifyBoss(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "orders@beccanena.com",
+      from: "onboarding@resend.dev",
       to,
       subject: `New Becca Nena Order #${orderNumber}`,
       text: [
