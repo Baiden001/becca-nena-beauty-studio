@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-cream text-brown;
+}
+
+.eyebrow {
+  @apply text-xs font-medium uppercase tracking-[0.18em] text-taupe;
+}
+
+/* Signature motif: a small swatch dot, echoing the makeup-swatch language
+   of the brand. Used as a divider, bullet, and loading/empty-state mark. */
+.swatch-dot {
+  @apply inline-block h-2 w-2 rounded-full bg-rose;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .fade-in {
+    animation: fade-in 0.5s ease-out both;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   Form field system — shared across the admin dashboard (and
+   available to the storefront) for a consistent, professional feel.
+   Rounded-lg + soft shadow + a visible focus ring (not just a border
+   color change) reads as an intentional "system" rather than default
+   browser chrome. Always pair with a real placeholder in markup —
+   these classes handle the look, not the guidance text.
+   ========================================================= */
+
+.field-label {
+  @apply block text-sm font-medium text-brown;
+}
+
+.field-hint {
+  @apply mt-1.5 text-xs text-taupe;
+}
+
+.field-error {
+  @apply mt-1.5 text-xs text-red-600;
+}
+
+.field-input,
+.field-select,
+.field-textarea {
+  @apply w-full rounded-lg border border-taupe/25 bg-white px-3.5 py-2.5 text-sm text-brown shadow-sm outline-none transition-all duration-150 placeholder:text-taupe/50;
+}
+
+.field-input:hover,
+.field-select:hover,
+.field-textarea:hover {
+  @apply border-taupe/45;
+}
+
+.field-input:focus,
+.field-select:focus,
+.field-textarea:focus {
+  @apply border-rose ring-2 ring-rose/15;
+}
+
+.field-input:disabled,
+.field-select:disabled,
+.field-textarea:disabled {
+  @apply cursor-not-allowed bg-cream/60 opacity-60;
+}
+
+.field-select {
+  @apply pr-9;
+}
+
+/* Compact variant — inline/toolbar contexts (filters, quick-add rows)
+   where the full-size field would feel oversized. */
+.field-input-sm,
+.field-select-sm {
+  @apply rounded-md border border-taupe/25 bg-white px-3 py-1.5 text-sm text-brown shadow-sm outline-none transition-all duration-150 placeholder:text-taupe/50;
+}
+
+.field-input-sm:hover,
+.field-select-sm:hover {
+  @apply border-taupe/45;
+}
+
+.field-input-sm:focus,
+.field-select-sm:focus {
+  @apply border-rose ring-2 ring-rose/15;
+}
+
+.field-input-sm:disabled,
+.field-select-sm:disabled {
+  @apply cursor-not-allowed opacity-60;
+}
+
