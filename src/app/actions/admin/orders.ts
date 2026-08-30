@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentStaff } from "@/lib/supabase/require-staff";
 import type { OrderStatus } from "@/types/database";
 
@@ -12,7 +12,7 @@ export async function updateOrderStatus(
   const staff = await getCurrentStaff();
   if (!staff) return { ok: false, error: "Not signed in." };
 
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   const { data: order, error: fetchError } = await supabase
     .from("orders")

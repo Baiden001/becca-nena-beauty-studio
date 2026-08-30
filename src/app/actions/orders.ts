@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface PlaceOrderLine {
   productId: string;
@@ -26,32 +26,56 @@ export interface PlaceOrderResult {
   error?: string;
 }
 
-export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
+export async function placeOrder(
+  input: PlaceOrderInput
+): Promise<PlaceOrderResult> {
   if (!input.lines.length) {
     return { ok: false, error: "Your cart is empty." };
   }
-  if (!input.name || !input.phone || !input.whatsapp || !input.deliveryLocation) {
+
+  if (
+    !input.name ||
+    !input.phone ||
+    !input.whatsapp ||
+    !input.deliveryLocation
+  ) {
     return { ok: false, error: "Please fill in all required fields." };
   }
 
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
-  // Reuse an existing customer record if we recognise the phone or email,
-  // per the PRD's "identify repeat customers" requirement.
+  // Reuse an existing customer record if we recognise the phone or email.
   let customerId: string | null = null;
-  const { data: existing } = await supabase
-    .from("customers")
-    .select("id")
-    .or(
-      [
-        input.phone ? `phone.eq.${input.phone}` : null,
-        input.email ? `email.eq.${input.email}` : null,
-      ]
-        .filter(Boolean)
-        .join(",")
-    )
-    .limit(1)
-    .maybeSingle();
+
+  const filters = [
+    input.phone ? `phone.eq.${input.phone}` : null,
+    input.email ? `email.eq.${input.email}` : null,
+  ].filter((value): value is string => Boolean(value));
+
+  let existing: { id: string } | null = null;
+
+  if (filters.length > 0) {
+    const { data, error: customerLookupError } = await supabase
+      .from("customers")
+      .select("id")
+      .or(filters.join(","))
+      .limit(1)
+      .maybeSingle();
+
+    if (customerLookupError) {
+      console.error(
+        "[customer-lookup] failed:",
+        customerLookupError
+      );
+
+      return {
+        ok: false,
+        error: "Could not check your customer details. Please try again.",
+      };
+    }
+
+    existing = data;
+  }
 
   if (existing) {
     customerId = existing.id;
@@ -62,20 +86,37 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
         name: input.name,
         phone: input.phone,
         whatsapp: input.whatsapp,
-        email: input.email || null,
+        email: input.email ?? null,
         location: input.deliveryLocation,
       })
       .select("id")
       .single();
 
     if (customerError || !customer) {
-      return { ok: false, error: "Could not save your details. Please try again." };
+      console.error(
+        "[customer-insert] failed:",
+        customerError
+      );
+
+      return {
+        ok: false,
+        error: "Could not save your details. Please try again.",
+      };
     }
+
     customerId = customer.id;
   }
 
-  const subtotal = input.lines.reduce((s, l) => s + l.regularPrice * l.quantity, 0);
-  const total = input.lines.reduce((s, l) => s + l.currentPrice * l.quantity, 0);
+  const subtotal = input.lines.reduce(
+    (sum, line) => sum + line.regularPrice * line.quantity,
+    0
+  );
+
+  const total = input.lines.reduce(
+    (sum, line) => sum + line.currentPrice * line.quantity,
+    0
+  );
+
   const discountTotal = subtotal - total;
 
   const { data: order, error: orderError } = await supabase
@@ -83,7 +124,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     .insert({
       customer_id: customerId,
       delivery_location: input.deliveryLocation,
-      notes: input.notes || null,
+      notes: input.notes ?? null,
       subtotal,
       discount_total: discountTotal,
       estimated_total: total,
@@ -93,33 +134,52 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     .single();
 
   if (orderError || !order) {
-    return { ok: false, error: "Could not create your order. Please try again." };
+    console.error("[order-insert] failed:", orderError);
+
+    return {
+      ok: false,
+      error: "Could not create your order. Please try again.",
+    };
   }
 
-  const { error: itemsError } = await supabase.from("order_items").insert(
-    input.lines.map((l) => ({
-      order_id: order.id,
-      product_id: l.productId,
-      product_name: l.productName,
-      quantity: l.quantity,
-      regular_price: l.regularPrice,
-      discount_amount: (l.regularPrice - l.currentPrice) * l.quantity,
-      final_price: l.currentPrice,
-      subtotal: l.currentPrice * l.quantity,
-    }))
-  );
+  const { error: itemsError } = await supabase
+    .from("order_items")
+    .insert(
+      input.lines.map((line) => ({
+        order_id: order.id,
+        product_id: line.productId,
+        product_name: line.productName,
+        quantity: line.quantity,
+        regular_price: line.regularPrice,
+        discount_amount:
+          (line.regularPrice - line.currentPrice) * line.quantity,
+        final_price: line.currentPrice,
+        subtotal: line.currentPrice * line.quantity,
+      }))
+    );
 
   if (itemsError) {
-    return { ok: false, error: "Your order was started but items failed to save. Please contact us on WhatsApp." };
+    console.error("[order-items-insert] failed:", itemsError);
+
+    return {
+      ok: false,
+      error:
+        "Your order was started but items failed to save. Please contact us on WhatsApp.",
+    };
   }
 
-  await notifyBoss(order.order_number, input, total).catch((err) => {
-    // Notification failure should never block the customer's confirmation
-    // — but it should be visible in server logs instead of vanishing.
-    console.error("[order-notification] failed to send:", err);
+  await notifyBoss(order.order_number, input, total).catch((error) => {
+    // Email failure should not block the customer's order confirmation.
+    console.error(
+      "[order-notification] failed to send:",
+      error
+    );
   });
 
-  return { ok: true, orderNumber: order.order_number };
+  return {
+    ok: true,
+    orderNumber: order.order_number,
+  };
 }
 
 async function notifyBoss(
@@ -129,45 +189,54 @@ async function notifyBoss(
 ): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   const to = process.env.ORDER_NOTIFICATION_EMAIL;
-  if (!apiKey || !to) return; // Not configured yet — safe no-op.
 
-  // Resend rejects sends from any domain you haven't verified in your
-  // Resend account. onboarding@resend.dev works immediately with zero
-  // setup, which is why it's the default — once you verify your own
-  // domain in Resend, set RESEND_FROM_EMAIL to something like
-  // orders@yourdomain.com and it'll be used instead.
-  const from = process.env.RESEND_FROM_EMAIL || "Becca Nena <onboarding@resend.dev>";
+  if (!apiKey || !to) {
+    throw new Error(
+      "RESEND_API_KEY or ORDER_NOTIFICATION_EMAIL is missing"
+    );
+  }
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from,
-      to,
-      subject: `New Becca Nena Order #${orderNumber}`,
-      text: [
-        `Customer: ${input.name}`,
-        `Phone: ${input.phone}`,
-        `WhatsApp: ${input.whatsapp}`,
-        `Delivery location: ${input.deliveryLocation}`,
-        "",
-        "Items:",
-        ...input.lines.map((l) => `  ${l.quantity} x ${l.productName} — GH₵${l.currentPrice * l.quantity}`),
-        "",
-        `Estimated total: GH₵${total}`,
-      ].join("\n"),
-    }),
-  });
+  const from =
+    process.env.RESEND_FROM_EMAIL ||
+    "Becca Nena <onboarding@resend.dev>";
+
+  const response = await fetch(
+    "https://api.resend.com/emails",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to,
+        subject: `New Becca Nena Order #${orderNumber}`,
+        text: [
+          `Customer: ${input.name}`,
+          `Phone: ${input.phone}`,
+          `WhatsApp: ${input.whatsapp}`,
+          `Delivery location: ${input.deliveryLocation}`,
+          "",
+          "Items:",
+          ...input.lines.map(
+            (line) =>
+              `${line.quantity} x ${line.productName} — GH₵${
+                line.currentPrice * line.quantity
+              }`
+          ),
+          "",
+          `Estimated total: GH₵${total}`,
+        ].join("\n"),
+      }),
+    }
+  );
 
   if (!response.ok) {
-    // fetch() only throws on network failure, not on 4xx/5xx — so a
-    // rejected send (bad API key, unverified domain, etc.) needs to be
-    // surfaced explicitly or it disappears silently, which is exactly
-    // what was happening before this check existed.
     const body = await response.text().catch(() => "");
-    throw new Error(`Resend responded ${response.status}: ${body}`);
+
+    throw new Error(
+      `Resend responded ${response.status}: ${body}`
+    );
   }
 }
