@@ -34,12 +34,12 @@ body {
 }
 
 /* =========================================================
-   Form field system — shared across the admin dashboard (and
-   available to the storefront) for a consistent, professional feel.
-   Rounded-lg + soft shadow + a visible focus ring (not just a border
-   color change) reads as an intentional "system" rather than default
-   browser chrome. Always pair with a real placeholder in markup —
-   these classes handle the look, not the guidance text.
+   Form field system — shared across the admin dashboard and
+   storefront for a consistent, professional feel. Rounded-lg + soft
+   shadow + a visible focus ring (not just a border color change)
+   reads as an intentional "system" rather than default browser
+   chrome. Always pair with a real placeholder in markup — these
+   classes handle the look, not the guidance text.
    ========================================================= */
 
 .field-label {

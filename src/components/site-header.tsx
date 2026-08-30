@@ -1,20 +1,14 @@
 import Link from "next/link";
 import { CartIndicator } from "@/components/cart-indicator";
+import { MobileNav } from "@/components/mobile-nav";
 import { Logo } from "@/components/logo";
+import { NAV_LINKS } from "@/lib/nav-links";
 import { waLink } from "@/lib/whatsapp";
-
-const NAV_LINKS = [
-  { href: "/shop", label: "Shop" },
-  { href: "/shop", label: "Categories" },
-  { href: "/promotions", label: "Promotions" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
-];
 
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-rose/20 bg-cream/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2.5">
           <Logo size={26} />
           <span className="font-serif text-xl tracking-tight text-brown">Becca Nena</span>
@@ -49,6 +43,7 @@ export function SiteHeader() {
             WhatsApp
           </a>
           <CartIndicator />
+          <MobileNav />
         </div>
       </div>
     </header>

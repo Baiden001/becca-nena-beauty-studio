@@ -113,8 +113,10 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     return { ok: false, error: "Your order was started but items failed to save. Please contact us on WhatsApp." };
   }
 
-  await notifyBoss(order.order_number, input, total).catch(() => {
-    // Notification failure should never block the customer's confirmation.
+  await notifyBoss(order.order_number, input, total).catch((err) => {
+    // Notification failure should never block the customer's confirmation
+    // — but it should be visible in server logs instead of vanishing.
+    console.error("[order-notification] failed to send:", err);
   });
 
   return { ok: true, orderNumber: order.order_number };
@@ -129,14 +131,21 @@ async function notifyBoss(
   const to = process.env.ORDER_NOTIFICATION_EMAIL;
   if (!apiKey || !to) return; // Not configured yet — safe no-op.
 
-  await fetch("https://api.resend.com/emails", {
+  // Resend rejects sends from any domain you haven't verified in your
+  // Resend account. onboarding@resend.dev works immediately with zero
+  // setup, which is why it's the default — once you verify your own
+  // domain in Resend, set RESEND_FROM_EMAIL to something like
+  // orders@yourdomain.com and it'll be used instead.
+  const from = process.env.RESEND_FROM_EMAIL || "Becca Nena <onboarding@resend.dev>";
+
+  const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "onboarding@resend.dev",
+      from,
       to,
       subject: `New Becca Nena Order #${orderNumber}`,
       text: [
@@ -152,4 +161,13 @@ async function notifyBoss(
       ].join("\n"),
     }),
   });
+
+  if (!response.ok) {
+    // fetch() only throws on network failure, not on 4xx/5xx — so a
+    // rejected send (bad API key, unverified domain, etc.) needs to be
+    // surfaced explicitly or it disappears silently, which is exactly
+    // what was happening before this check existed.
+    const body = await response.text().catch(() => "");
+    throw new Error(`Resend responded ${response.status}: ${body}`);
+  }
 }

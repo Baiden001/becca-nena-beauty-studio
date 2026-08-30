@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { requireOwnerAdmin } from "@/lib/supabase/require-staff";
+import { getBaseUrl } from "@/lib/base-url";
 import type { UserRole } from "@/types/database";
 
 export async function inviteStaff(
@@ -21,8 +22,13 @@ export async function inviteStaff(
 
   // Creates the Supabase Auth account and emails them an invite link to
   // set their password — requires the service role key, so this can't be
-  // done with the regular anon/session client.
-  const { data, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email);
+  // done with the regular anon/session client. redirectTo points the
+  // email link at our own accept-invite page instead of Supabase's
+  // default (the Site URL, which is the storefront homepage) so they
+  // land on an actual "set your password" screen.
+  const { data, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
+    redirectTo: `${getBaseUrl()}/admin/accept-invite`,
+  });
 
   if (inviteError || !data.user) {
     return {

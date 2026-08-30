@@ -127,9 +127,10 @@ export function AdminNav({ staffName, role }: { staffName: string; role: string 
           <button
             onClick={async () => {
               await signOutStaff();
-              // Hard navigation — same reasoning as the login page: avoids
-              // Next's client router potentially serving a stale, still
-              // "signed in" cached page after sign-out.
+              // Hard navigation, not router.push/refresh — Next's client
+              // router can serve a stale cached page, which here would
+              // mean still looking "signed in" for a moment after
+              // signing out.
               window.location.href = "/admin/login";
             }}
             aria-label="Sign out"

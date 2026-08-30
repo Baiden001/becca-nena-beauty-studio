@@ -66,12 +66,12 @@ export default function AdminLoginPage() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="field-error">{error}</p>}
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-full bg-rose px-6 py-2.5 text-sm font-medium text-cream hover:bg-brown disabled:opacity-60"
+            className="w-full rounded-full bg-rose px-6 py-2.5 text-sm font-medium text-cream shadow-sm transition-colors hover:bg-brown disabled:opacity-60"
           >
             {submitting ? "Signing in…" : "Sign in"}
           </button>
