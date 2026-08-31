@@ -13,7 +13,7 @@ while you're waiting on real photography.
 
 | File | Used on | Recommended shape |
 |---|---|---|
-| `images/hero.jpg` | Homepage hero (right side on desktop) | Portrait, ~4:5 |
+| `images/hero.jpg` | Homepage hero — full-bleed background image (and used as the video's poster frame, see `public/videos/README.md`) | Landscape, ~16:9, at least 1600px wide |
 | `images/about.jpg` | Homepage "About Becca Nena" section | Landscape, ~4:3 |
 | `images/about-page.jpg` | `/about` page | Wide, ~16:9 |
 | `images/instagram-1.jpg` … `images/instagram-6.jpg` | Homepage Instagram grid (6 tiles) | Square, 1:1 |

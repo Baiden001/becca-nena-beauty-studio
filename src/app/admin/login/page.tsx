@@ -78,8 +78,7 @@ export default function AdminLoginPage() {
         </form>
 
         <p className="mt-6 text-center text-xs text-taupe">
-          Accounts are created by an existing admin in Supabase Auth, then
-          linked to a row in the <code>users</code> table.
+          Accounts are created by an existing admin<code>users</code> table.
         </p>
       </div>
     </main>

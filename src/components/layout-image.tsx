@@ -1,14 +1,5 @@
-import fs from "fs";
-import path from "path";
 import Image from "next/image";
-
-function existsInPublic(relativePath: string): boolean {
-  try {
-    return fs.existsSync(path.join(process.cwd(), "public", relativePath));
-  } catch {
-    return false;
-  }
-}
+import { existsInPublic } from "@/lib/public-file";
 
 /**
  * For static, editorial layout imagery (hero, about section, Instagram
