@@ -21,6 +21,9 @@ const workSans = Work_Sans({
 export const metadata: Metadata = {
   title: "Becca Nena Beauty Studio",
   description: "Premium cosmetics, curated for you. Shop the edit @the.bnb.studio.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

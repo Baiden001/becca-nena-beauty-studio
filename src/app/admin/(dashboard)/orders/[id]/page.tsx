@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatCedis } from "@/lib/pricing";
@@ -33,15 +34,27 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
 
   return (
     <div className="max-w-3xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="eyebrow">Order</p>
-          <h1 className="font-serif text-2xl text-brown">#{order.order_number}</h1>
-        </div>
-        <p className="text-sm text-taupe">
-          {new Date(order.created_at).toLocaleString()}
-        </p>
-      </div>
+      <div>
+  <Link
+    href="/admin/orders"
+    className="inline-flex items-center text-sm text-taupe transition-colors hover:text-rose"
+  >
+    ← Back to Orders
+  </Link>
+
+  <div className="mt-4 flex items-center justify-between">
+    <div>
+      <p className="eyebrow">Order</p>
+      <h1 className="font-serif text-2xl text-brown">
+        #{order.order_number}
+      </h1>
+    </div>
+
+    <p className="text-sm text-taupe">
+      {new Date(order.created_at).toLocaleString()}
+    </p>
+  </div>
+</div>
 
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
         <div className="rounded-md border border-rose/20 bg-white p-5">
