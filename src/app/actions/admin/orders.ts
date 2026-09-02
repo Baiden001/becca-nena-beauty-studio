@@ -9,63 +9,101 @@ export async function updateOrderStatus(
   orderId: string,
   status: OrderStatus
 ): Promise<{ ok: boolean; error?: string }> {
-  const staff = await getCurrentStaff();
+  try {
+    console.log("1. Starting update", { orderId, status });
 
-  if (!staff) {
-    return { ok: false, error: "Not signed in." };
-  }
+    const staff = await getCurrentStaff();
+    console.log("2. Staff check complete", staff?.id);
 
-  const supabase = createAdminClient();
+    if (!staff) {
+      return { ok: false, error: "Not signed in." };
+    }
 
-  const { data: order, error: fetchError } = await supabase
-    .from("orders")
-    .select("id, order_number, status")
-    .eq("id", orderId)
-    .single();
+    const supabase = createAdminClient();
+    console.log("3. Admin client created");
 
-  if (fetchError || !order) {
-    return { ok: false, error: "Order not found." };
-  }
+    const { data: order, error: fetchError } = await supabase
+      .from("orders")
+      .select("id, order_number, status")
+      .eq("id", orderId)
+      .single();
 
-  const wasConfirmed =
-    order.status !== "confirmed" && status === "confirmed";
+    console.log("4. Order fetch complete", { order, fetchError });
 
-  const { error: updateError } = await supabase
-    .from("orders")
-    .update({ status })
-    .eq("id", orderId);
+    if (fetchError || !order) {
+      return { ok: false, error: "Order not found." };
+    }
 
-  if (updateError) {
+    const wasConfirmed =
+      order.status !== "confirmed" && status === "confirmed";
+
+    console.log("5. Updating order", {
+      oldStatus: order.status,
+      newStatus: status,
+      wasConfirmed,
+    });
+
+    const { error: updateError } = await supabase
+      .from("orders")
+      .update({ status })
+      .eq("id", orderId);
+
+    console.log("6. Order update complete", updateError);
+
+    if (updateError) {
+      return {
+        ok: false,
+        error: "Could not update order status.",
+      };
+    }
+
+    if (wasConfirmed) {
+      console.log("7. Fetching order items");
+
+      const { data: items, error: itemsError } = await supabase
+        .from("order_items")
+        .select("product_id, quantity")
+        .eq("order_id", orderId);
+
+      console.log("8. Items fetch complete", {
+        items,
+        itemsError,
+      });
+
+      for (const item of items || []) {
+        if (!item.product_id) continue;
+
+        console.log("9. Creating inventory transaction", item);
+
+        const { error: inventoryError } = await supabase
+          .from("inventory_transactions")
+          .insert({
+            product_id: item.product_id,
+            quantity_change: -item.quantity,
+            reason: `Order #${order.order_number}`,
+            order_id: orderId,
+            created_by: staff.id,
+          });
+
+        console.log("10. Inventory transaction complete", inventoryError);
+      }
+    }
+
+    console.log("11. Revalidating");
+
+    revalidatePath("/admin/orders");
+    revalidatePath(`/admin/orders/${orderId}`);
+    revalidatePath("/admin");
+
+    console.log("12. Finished successfully");
+
+    return { ok: true };
+  } catch (error) {
+    console.error("UPDATE ORDER STATUS CRASHED:", error);
+
     return {
       ok: false,
-      error: "Could not update order status.",
+      error: "Something went wrong while updating the order.",
     };
   }
-
-  // Inventory moves only when an order is first confirmed.
-  // This prevents stock from being deducted more than once.
-  if (wasConfirmed) {
-    const { data: items } = await supabase
-      .from("order_items")
-      .select("product_id, quantity")
-      .eq("order_id", orderId);
-
-    for (const item of items || []) {
-      if (!item.product_id) continue;
-
-      await supabase.from("inventory_transactions").insert({
-        product_id: item.product_id,
-        quantity_change: -item.quantity,
-        reason: `Order #${order.order_number}`,
-        order_id: orderId,
-        created_by: staff.id,
-      });
-    }
-  }
-
-  revalidatePath("/admin/orders");
-  revalidatePath(`/admin/orders/${orderId}`);
-  revalidatePath("/admin");
-
-  return { ok: true };
 }
