@@ -13,12 +13,14 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    setSubmitting(true);
+ async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  e.preventDefault();
+  setError(null);
+  setSubmitting(true);
 
+  try {
     const form = new FormData(e.currentTarget);
+
     const result = await placeOrder({
       name: String(form.get("name") || ""),
       phone: String(form.get("phone") || ""),
@@ -35,8 +37,6 @@ export default function CheckoutPage() {
       })),
     });
 
-    setSubmitting(false);
-
     if (!result.ok || !result.orderNumber) {
       setError(result.error || "Something went wrong. Please try again.");
       return;
@@ -44,7 +44,13 @@ export default function CheckoutPage() {
 
     clear();
     router.push(`/order-confirmation/${result.orderNumber}`);
+  } catch (error) {
+    console.error("PLACE ORDER ERROR:", error);
+    setError("We could not complete your order. Please try again.");
+  } finally {
+    setSubmitting(false);
   }
+}
 
   if (!lines.length) {
     return (
