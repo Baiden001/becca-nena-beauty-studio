@@ -34,9 +34,10 @@ export function OrderStatusControl({
     setSaving(false);
 
     if (!result.ok) {
-      setError(result.error || "Could not update status.");
-      return;
-    }
+  console.error("ORDER STATUS UPDATE FAILED:", result.error);
+  setError(result.error || "Could not update status.");
+  return;
+}
     setStatus(next);
     router.refresh();
   }

@@ -99,11 +99,14 @@ export async function updateOrderStatus(
 
     return { ok: true };
   } catch (error) {
-    console.error("UPDATE ORDER STATUS CRASHED:", error);
+  console.error("ORDER STATUS UPDATE ERROR:", error);
 
-    return {
-      ok: false,
-      error: "Something went wrong while updating the order.",
-    };
-  }
+  return {
+    ok: false,
+    error:
+      error instanceof Error
+        ? error.message
+        : JSON.stringify(error),
+  };
+}
 }
