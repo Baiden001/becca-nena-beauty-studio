@@ -1,56 +1,57 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 import { formatCedis } from "@/lib/pricing";
 import { placeOrder } from "@/app/actions/orders";
 
 export default function CheckoutPage() {
-  const { lines, subtotal, discountTotal, total, clear } = useCart();
-  const router = useRouter();
+  const { lines, subtotal, discountTotal, total } = useCart();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
- async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-  e.preventDefault();
-  setError(null);
-  setSubmitting(true);
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
 
-  try {
-    const form = new FormData(e.currentTarget);
+    let redirecting = false;
 
-    const result = await placeOrder({
-      name: String(form.get("name") || ""),
-      phone: String(form.get("phone") || ""),
-      whatsapp: String(form.get("whatsapp") || ""),
-      email: String(form.get("email") || ""),
-      deliveryLocation: String(form.get("deliveryLocation") || ""),
-      notes: String(form.get("notes") || ""),
-      lines: lines.map((l) => ({
-        productId: l.productId,
-        productName: l.name,
-        quantity: l.quantity,
-        regularPrice: l.regularPrice,
-        currentPrice: l.currentPrice,
-      })),
-    });
+    try {
+      const form = new FormData(e.currentTarget);
 
-    if (!result.ok || !result.orderNumber) {
-      setError(result.error || "Something went wrong. Please try again.");
-      return;
+      // Only product + quantity are sent. Prices are re-read from the
+      // database on the server, so the amount charged can't be tampered with.
+      const result = await placeOrder({
+        name: String(form.get("name") || ""),
+        phone: String(form.get("phone") || ""),
+        whatsapp: String(form.get("whatsapp") || ""),
+        email: String(form.get("email") || ""),
+        deliveryLocation: String(form.get("deliveryLocation") || ""),
+        notes: String(form.get("notes") || ""),
+        lines: lines.map((l) => ({
+          productId: l.productId,
+          quantity: l.quantity,
+        })),
+      });
+
+      if (!result.ok || !result.paymentUrl) {
+        setError(result.error || "Something went wrong. Please try again.");
+        return;
+      }
+
+      // The cart is cleared on the confirmation page once payment succeeds,
+      // so someone who backs out of Paystack doesn't lose their basket.
+      redirecting = true;
+      window.location.href = result.paymentUrl;
+    } catch (err) {
+      console.error("PLACE ORDER ERROR:", err);
+      setError("We could not start your payment. Please try again.");
+    } finally {
+      if (!redirecting) setSubmitting(false);
     }
-
-    clear();
-    router.push(`/order-confirmation/${result.orderNumber}`);
-  } catch (error) {
-    console.error("PLACE ORDER ERROR:", error);
-    setError("We could not complete your order. Please try again.");
-  } finally {
-    setSubmitting(false);
   }
-}
 
   if (!lines.length) {
     return (
@@ -72,7 +73,13 @@ export default function CheckoutPage() {
           <Field label="Full name" name="name" placeholder="Ama Owusu" required />
           <Field label="Phone number" name="phone" type="tel" placeholder="024 123 4567" required />
           <Field label="WhatsApp number" name="whatsapp" type="tel" placeholder="024 123 4567" required />
-          <Field label="Email (optional)" name="email" type="email" placeholder="you@example.com" />
+          <Field
+            label="Email (for your payment receipt)"
+            name="email"
+            type="email"
+            placeholder="you@example.com"
+            required
+          />
           <Field
             label="Delivery location"
             name="deliveryLocation"
@@ -91,8 +98,9 @@ export default function CheckoutPage() {
           </div>
 
           <p className="rounded-md bg-rose-light/30 px-4 py-3 text-sm text-brown">
-            Payment and delivery details will be confirmed by our sales team
-            after your order is received.
+            Next you&apos;ll pay securely with Mobile Money or card through
+            Paystack. Once your payment goes through, our team contacts you
+            to confirm delivery.
           </p>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
@@ -102,7 +110,7 @@ export default function CheckoutPage() {
             disabled={submitting}
             className="w-full rounded-full bg-rose px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-brown disabled:opacity-60"
           >
-            {submitting ? "Placing order…" : "Place Order"}
+            {submitting ? "Taking you to payment…" : `Pay ${formatCedis(total)}`}
           </button>
         </form>
 
@@ -130,7 +138,7 @@ export default function CheckoutPage() {
               </div>
             )}
             <div className="flex justify-between text-base font-medium text-brown">
-              <span>Estimated total</span>
+              <span>Total</span>
               <span>{formatCedis(total)}</span>
             </div>
           </div>
