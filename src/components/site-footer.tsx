@@ -1,9 +1,20 @@
 import Link from "next/link";
 import { waLink } from "@/lib/whatsapp";
+import { NewsletterSignup } from "@/components/newsletter-signup";
 
 export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-rose/20 bg-white">
+      <div className="relative bg-rose-light/30 px-6 py-12 text-center">
+        <p className="eyebrow">Stay in the loop</p>
+        <h2 className="mt-2 font-serif text-2xl text-brown">
+          New arrivals, offers and beauty edits, straight to your inbox.
+        </h2>
+        <div className="mt-6">
+          <NewsletterSignup />
+        </div>
+      </div>
+
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-3">
         <div>
           <p className="font-serif text-lg text-brown">Becca Nena Beauty Studio</p>
