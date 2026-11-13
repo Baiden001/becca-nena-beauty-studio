@@ -7,9 +7,9 @@ import { waLink } from "@/lib/whatsapp";
 
 const ORDER_STEPS = [
   { step: "01", label: "Choose your products" },
-  { step: "02", label: "Place your order" },
-  { step: "03", label: "Our sales team contacts you" },
-  { step: "04", label: "Confirm payment and delivery" },
+  { step: "02", label: "Enter your delivery details" },
+  { step: "03", label: "Pay securely with Mobile Money or card" },
+  { step: "04", label: "We confirm and pack your order" },
   { step: "05", label: "Receive your order" },
 ];
 
@@ -71,8 +71,8 @@ export default async function Home() {
               </h1>
               <p className="mt-5 max-w-md text-cream/85">
                 A premium edit of makeup, skincare, and fragrance, picked the way
-                we&apos;d recommend it to a friend. Order online, and our team
-                confirms everything with you directly.
+                we&apos;d recommend it to a friend. Pay securely online with Mobile
+                Money or card, and our team confirms delivery with you directly.
               </p>
               <div className="mt-8 flex flex-wrap gap-4">
                 <Link
