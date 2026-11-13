@@ -8,43 +8,34 @@ import { CartIndicator } from "@/components/cart-indicator";
 import { MenuDrawer } from "@/components/menu-drawer";
 import { Logo } from "@/components/logo";
 
-const HEADER_HEIGHT = 64; // h-16
+const SCROLL_THRESHOLD = 40; // px scrolled before the header gets its background
 
-// Floating header: no background, so it takes on whatever page is behind it.
-// On the homepage it sits on top of the hero (image or video) in white; once
-// you scroll past the hero it switches to the brand brown. On every other
-// page it floats over the cream page background in brown.
+// Floating header. At the very top it's fully transparent: on the homepage it
+// sits on the hero (image or video) in white. Once you scroll, it gets a
+// frosted cream background and switches to the brand brown so it stays
+// readable over products and text.
 export function SiteHeader() {
   const pathname = usePathname();
   const isHome = pathname === "/";
-  const [overHero, setOverHero] = useState(isHome);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    if (!isHome) {
-      setOverHero(false);
-      return;
-    }
-    const update = () => {
-      const hero = document.getElementById("hero");
-      const heroHeight = hero?.offsetHeight ?? window.innerHeight * 0.8;
-      setOverHero(window.scrollY < heroHeight - HEADER_HEIGHT);
-    };
+    const update = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
     update();
     window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, [isHome]);
+    return () => window.removeEventListener("scroll", update);
+  }, []);
 
-  const light = isHome && overHero;
+  // White only while transparent over the hero.
+  const light = isHome && !scrolled;
 
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-40 transition-colors duration-300 ${
-          light ? "text-cream" : "text-brown"
+        className={`fixed inset-x-0 top-0 z-40 border-b transition-colors duration-300 ${
+          scrolled
+            ? "border-rose/20 bg-cream/95 text-brown backdrop-blur"
+            : `border-transparent ${light ? "text-cream" : "text-brown"}`
         }`}
       >
         <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-6">
