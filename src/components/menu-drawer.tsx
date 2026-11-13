@@ -33,7 +33,7 @@ export function MenuDrawer() {
         onClick={() => setOpen(true)}
         aria-label="Open menu"
         aria-expanded={open}
-        className="text-brown hover:text-rose"
+        className="hover:text-rose"
       >
         <Menu size={24} strokeWidth={1.5} />
       </button>
