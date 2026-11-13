@@ -21,7 +21,7 @@ export default async function AdminOrdersPage({
   const supabase = createClient();
   let query = supabase
     .from("orders")
-    .select("id, order_number, status, estimated_total, delivery_location, created_at, customers(name, phone)")
+    .select("id, order_number, status, payment_status, estimated_total, delivery_location, created_at, customers(name, phone)")
     .order("created_at", { ascending: false });
 
   if (searchParams.status) {
@@ -34,6 +34,7 @@ export default async function AdminOrdersPage({
         id: string;
         order_number: string;
         status: string;
+        payment_status: "pending" | "paid" | "failed";
         estimated_total: number;
         created_at: string;
         customers: { name: string; phone: string | null } | null;
@@ -60,6 +61,7 @@ export default async function AdminOrdersPage({
               <th className="px-4 py-3">Order</th>
               <th className="px-4 py-3">Customer</th>
               <th className="px-4 py-3">Total</th>
+              <th className="px-4 py-3">Payment</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Date</th>
             </tr>
@@ -78,6 +80,17 @@ export default async function AdminOrdersPage({
                     <div className="text-xs text-taupe">{o.customers?.phone}</div>
                   </td>
                   <td className="px-4 py-3 text-brown">{formatCedis(o.estimated_total)}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs ${
+                        o.payment_status === "paid"
+                          ? "bg-sage/40 text-brown"
+                          : "bg-rose-light/50 text-taupe"
+                      }`}
+                    >
+                      {o.payment_status === "paid" ? "Paid" : "Awaiting payment"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 capitalize text-brown">{o.status.replace(/_/g, " ")}</td>
                   <td className="px-4 py-3 text-taupe">
                     {new Date(o.created_at).toLocaleDateString()}
@@ -86,7 +99,7 @@ export default async function AdminOrdersPage({
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-taupe">
+                <td colSpan={6} className="px-4 py-8 text-center text-taupe">
                   No orders match this filter.
                 </td>
               </tr>
