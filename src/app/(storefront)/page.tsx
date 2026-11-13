@@ -46,7 +46,7 @@ export default async function Home() {
           so nothing breaks before real footage is added. A fixed
           min-height means no layout shift either way — the section's
           size never depends on what loads inside it. */}
-      <section className="relative min-h-[80vh] w-full overflow-hidden sm:min-h-[90vh]">
+      <section id="hero" className="relative min-h-[80vh] w-full overflow-hidden sm:min-h-[90vh]">
         <LayoutImage
           src="images/hero.jpg"
           alt=""
@@ -60,6 +60,10 @@ export default async function Home() {
         {/* Scrim for text legibility over either the video or the image —
             darkest at the bottom where the text sits, fading upward. */}
         <div className="absolute inset-0 bg-gradient-to-t from-brown/75 via-brown/25 to-transparent" />
+
+        {/* Soft shade at the very top so the floating header stays readable
+            over any image or video. */}
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-brown/40 to-transparent" />
 
         <div className="relative z-10 flex min-h-[80vh] items-end sm:min-h-[90vh]">
           <div className="mx-auto w-full max-w-6xl px-6 pb-14 sm:pb-20">
