@@ -50,9 +50,16 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
       </h1>
     </div>
 
-    <p className="text-sm text-taupe">
-      {new Date(order.created_at).toLocaleString()}
-    </p>
+    <div className="text-right">
+      <p className="text-sm text-taupe">
+        {new Date(order.created_at).toLocaleString()}
+      </p>
+      <p className="mt-1 text-xs text-brown">
+        {order.payment_status === "paid"
+          ? `Paid${order.payment_channel === "mobile_money" ? " · Mobile Money" : order.payment_channel === "card" ? " · Card" : ""}${order.paid_at ? ` · ${new Date(order.paid_at).toLocaleString()}` : ""}`
+          : "Awaiting payment"}
+      </p>
+    </div>
   </div>
 </div>
 
