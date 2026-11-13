@@ -15,6 +15,7 @@ export type OrderStatus =
   | "delivered"
   | "completed"
   | "cancelled";
+export type PaymentStatus = "pending" | "paid" | "failed";
 export type UserRole = "owner_admin" | "sales_staff";
 
 export interface UserRow {
@@ -117,8 +118,19 @@ export interface OrderRow {
   estimated_total: number;
   delivery_location: string;
   notes: string | null;
+  payment_status: PaymentStatus;
+  payment_reference: string | null;
+  payment_channel: string | null;
+  paid_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface NewsletterSubscriberRow {
+  id: string;
+  email: string;
+  source: string;
+  created_at: string;
 }
 
 export interface OrderItemRow {
@@ -177,6 +189,7 @@ export interface Database {
       product_images: TableDef<ProductImageRow, "product_id" | "image_url">;
       customers: TableDef<CustomerRow, "name">;
       orders: TableDef<OrderRow, "customer_id" | "delivery_location">;
+      newsletter_subscribers: TableDef<NewsletterSubscriberRow, "email">;
       order_items: TableDef<
         OrderItemRow,
         "order_id" | "product_name" | "quantity" | "regular_price" | "final_price" | "subtotal"
@@ -196,6 +209,7 @@ export interface Database {
       promotion_status: PromotionStatus;
       promotion_cta_type: PromotionCtaType;
       order_status: OrderStatus;
+      payment_status: PaymentStatus;
       user_role: UserRole;
     };
     CompositeTypes: Record<string, never>;
