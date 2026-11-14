@@ -52,7 +52,7 @@ export function SiteHeader() {
             aria-label="Becca Nena Beauty Studio, home"
             className="flex items-center justify-center"
           >
-            <Logo size={22} light={light} />
+            <Logo size={46} light={light} />
           </Link>
 
           <div className="flex items-center justify-end gap-5">
