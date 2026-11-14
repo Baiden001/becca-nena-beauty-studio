@@ -10,6 +10,10 @@ import { Logo } from "@/components/logo";
 
 const SCROLL_THRESHOLD = 40; // px scrolled before the header gets its background
 
+// The homepage hero is cream, so the header stays brown. Set this to true if
+// the hero becomes a dark photo or video, so the header turns white on top of it.
+const HERO_IS_DARK = false;
+
 // Floating header. At the very top it's fully transparent: on the homepage it
 // sits on the hero (image or video) in white. Once you scroll, it gets a
 // frosted cream background and switches to the brand brown so it stays
@@ -27,7 +31,7 @@ export function SiteHeader() {
   }, []);
 
   // White only while transparent over the hero.
-  const light = isHome && !scrolled;
+  const light = HERO_IS_DARK && isHome && !scrolled;
 
   return (
     <>
