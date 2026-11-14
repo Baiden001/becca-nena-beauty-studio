@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ShoppingBag,
+  Store,
+  Undo2,
   Package,
   Tag,
   Layers,
@@ -35,7 +37,9 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Overview",
     links: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
+      { href: "/admin/walk-in", label: "Walk-in sale", icon: Store },
       { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+      { href: "/admin/returns", label: "Returns", icon: Undo2 },
     ],
   },
   {
