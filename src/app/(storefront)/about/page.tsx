@@ -16,7 +16,7 @@ export default function AboutPage() {
         />
       </div>
       <p className="mt-8 max-w-xl text-brown/90">
-        Becca Nena is a premium cosmetics studio based in Accra. We curate
+        Becca Nena Beauty Studio is a premium cosmetics studio based in Accra. We curate
         makeup, skincare, body care, hair care, and fragrance the way we&apos;d
         recommend it to a friend. No clutter, no guesswork, just an edit
         worth trusting.
