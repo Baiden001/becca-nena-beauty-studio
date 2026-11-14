@@ -17,10 +17,46 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
 
   if (!order) notFound();
 
+  const isWalkIn = order.channel === "walk_in";
+  let soldBy: string | null = null;
+  if (order.sold_by) {
+    const { data: seller } = await supabase
+      .from("users")
+      .select("name")
+      .eq("id", order.sold_by)
+      .maybeSingle();
+    soldBy = seller?.name ?? null;
+  }
+
   const { data: items } = await supabase
     .from("order_items")
     .select("*")
     .eq("order_id", params.id);
+
+  const { data: returnsRaw } = await supabase
+    .from("returns")
+    .select("id, return_number, refund_total, refund_method, reason, created_at, users(name)")
+    .eq("order_id", params.id)
+    .order("created_at", { ascending: false });
+  const returns = returnsRaw as unknown as
+    | {
+        id: string;
+        return_number: string;
+        refund_total: number;
+        refund_method: string;
+        reason: string;
+        created_at: string;
+        users: { name: string } | null;
+      }[]
+    | null;
+  const returnIds = (returns ?? []).map((r) => r.id);
+  const { data: returnItems } = returnIds.length
+    ? await supabase
+        .from("return_items")
+        .select("return_id, product_name, quantity, restocked")
+        .in("return_id", returnIds)
+    : { data: [] as { return_id: string; product_name: string; quantity: number; restocked: boolean }[] };
+  const canReturn = order.payment_status === "paid" && order.status !== "cancelled";
 
   const customer = order.customers as {
     name: string;
@@ -59,6 +95,20 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
           ? `Paid${order.payment_channel === "mobile_money" ? " · Mobile Money" : order.payment_channel === "card" ? " · Card" : ""}${order.paid_at ? ` · ${new Date(order.paid_at).toLocaleString()}` : ""}`
           : "Awaiting payment"}
       </p>
+      {canReturn && (
+        <Link
+          href={`/admin/returns/new?order=${order.order_number}`}
+          className="mt-2 inline-block text-xs text-brown underline decoration-rose/60 underline-offset-4 hover:text-rose"
+        >
+          Process a return
+        </Link>
+      )}
+      {isWalkIn && (
+        <p className="mt-1 text-xs text-taupe">
+          In-store sale{order.payment_method ? ` · ${order.payment_method.replace(/_/g, " ")}` : ""}
+          {soldBy ? ` · sold by ${soldBy}` : ""}
+        </p>
+      )}
     </div>
   </div>
 </div>
@@ -73,6 +123,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
           {order.notes && <p className="mt-2 text-sm text-taupe">Notes: {order.notes}</p>}
 
           <div className="mt-4 flex gap-3">
+            {(!isWalkIn || customer?.phone) && (
             <a
               href={waLink(whatsappMessage)}
               target="_blank"
@@ -81,6 +132,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
             >
               WhatsApp customer
             </a>
+            )}
             {customer?.phone && (
               <a
                 href={`tel:${customer.phone}`}
@@ -92,9 +144,11 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
           </div>
         </div>
 
-        <div className="rounded-md border border-rose/20 bg-white p-5">
-          <OrderStatusControl orderId={order.id} currentStatus={order.status as OrderStatus} />
-        </div>
+        {!isWalkIn && (
+          <div className="rounded-md border border-rose/20 bg-white p-5">
+            <OrderStatusControl orderId={order.id} currentStatus={order.status as OrderStatus} />
+          </div>
+        )}
       </div>
 
       <div className="mt-6 rounded-md border border-rose/20 bg-white">
@@ -136,6 +190,40 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
           </div>
         </div>
       </div>
+
+      {(returns ?? []).length > 0 && (
+        <div className="mt-6 rounded-md border border-rose/20 bg-white p-5">
+          <p className="text-sm font-medium text-brown">Returns on this sale</p>
+          <ul className="mt-3 divide-y divide-rose/10">
+            {(returns ?? []).map((r) => (
+              <li key={r.id} className="py-3 text-sm">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-medium text-brown">
+                    {r.return_number} · refunded {formatCedis(Number(r.refund_total))}
+                    <span className="ml-1 text-xs font-normal capitalize text-taupe">
+                      ({r.refund_method.replace(/_/g, " ")})
+                    </span>
+                  </span>
+                  <span className="text-xs text-taupe">
+                    {new Date(r.created_at).toLocaleString()} · {r.users?.name ?? "Unknown"}
+                  </span>
+                </div>
+                <p className="text-xs text-taupe">{r.reason}</p>
+                <ul className="mt-1 text-xs text-brown">
+                  {(returnItems ?? [])
+                    .filter((i) => i.return_id === r.id)
+                    .map((i, n) => (
+                      <li key={n}>
+                        {i.quantity} x {i.product_name}
+                        {i.restocked ? "" : " (not put back in stock)"}
+                      </li>
+                    ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
