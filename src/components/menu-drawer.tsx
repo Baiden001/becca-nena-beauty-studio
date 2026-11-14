@@ -7,6 +7,7 @@ import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { NAV_LINKS } from "@/lib/nav-links";
 import { waLink } from "@/lib/whatsapp";
+import { HAIR_SITE } from "@/lib/links";
 
 export function MenuDrawer() {
   const [open, setOpen] = useState(false);
@@ -80,6 +81,14 @@ export function MenuDrawer() {
               </nav>
 
               <div className="mt-auto space-y-3 pt-8 text-sm text-taupe">
+                <a
+                  href={HAIR_SITE.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-brown hover:text-rose"
+                >
+                  {HAIR_SITE.name} ({HAIR_SITE.short}) ↗
+                </a>
                 <a
                   href={waLink("Hi Becca Nena, I have a question about your products.")}
                   target="_blank"

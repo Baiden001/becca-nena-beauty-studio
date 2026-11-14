@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { waLink } from "@/lib/whatsapp";
+import { HAIR_SITE } from "@/lib/links";
 import { NewsletterSignup } from "@/components/newsletter-signup";
 
 export function SiteFooter() {
@@ -53,6 +54,16 @@ export function SiteFooter() {
                 className="hover:text-rose"
               >
                 @the.bnb.studio
+              </a>
+            </li>
+            <li>
+              <a
+                href={HAIR_SITE.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-rose"
+              >
+                Visit {HAIR_SITE.name} ({HAIR_SITE.short}) ↗
               </a>
             </li>
           </ul>
