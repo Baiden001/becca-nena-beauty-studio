@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { currentPrice } from "@/lib/pricing";
 import type { Database } from "@/types/database";
@@ -103,7 +104,16 @@ export function AddToCartForm({
           onClick={handleAdd}
           className="flex-1 rounded-full bg-rose px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-brown disabled:cursor-not-allowed disabled:bg-taupe/40"
         >
-          {isSoldOut ? "Out of stock" : added ? "Added" : "Add to Cart"}
+          {isSoldOut ? (
+            "Out of stock"
+          ) : added ? (
+            <span className="inline-flex items-center justify-center gap-2">
+              <Check size={16} strokeWidth={2.25} aria-hidden />
+              Added
+            </span>
+          ) : (
+            "Add to Cart"
+          )}
         </button>
       </div>
 
