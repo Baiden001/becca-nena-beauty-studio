@@ -16,6 +16,8 @@ export type OrderStatus =
   | "completed"
   | "cancelled";
 export type PaymentStatus = "pending" | "paid" | "failed";
+export type SalesChannel = "online" | "walk_in";
+export type PaymentMethod = "cash" | "mobile_money" | "card" | "pos_terminal" | "bank_transfer";
 export type UserRole = "owner_admin" | "sales_staff";
 
 export interface UserRow {
@@ -63,6 +65,7 @@ export interface ProductRow {
   brand: string | null;
   category_id: string | null;
   sku: string | null;
+  barcode: string | null;
   regular_price: number;
   discount_type: DiscountType;
   discount_value: number;
@@ -122,8 +125,35 @@ export interface OrderRow {
   payment_reference: string | null;
   payment_channel: string | null;
   paid_at: string | null;
+  channel: SalesChannel;
+  payment_method: PaymentMethod | null;
+  sold_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ReturnRow {
+  id: string;
+  return_number: string;
+  order_id: string;
+  processed_by: string | null;
+  refund_method: PaymentMethod;
+  reason: string;
+  notes: string | null;
+  refund_total: number;
+  created_at: string;
+}
+
+export interface ReturnItemRow {
+  id: string;
+  return_id: string;
+  order_item_id: string;
+  product_id: string | null;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  refund_amount: number;
+  restocked: boolean;
 }
 
 export interface NewsletterSubscriberRow {
@@ -190,6 +220,11 @@ export interface Database {
       customers: TableDef<CustomerRow, "name">;
       orders: TableDef<OrderRow, "customer_id" | "delivery_location">;
       newsletter_subscribers: TableDef<NewsletterSubscriberRow, "email">;
+      returns: TableDef<ReturnRow, "return_number" | "order_id" | "refund_method" | "reason">;
+      return_items: TableDef<
+        ReturnItemRow,
+        "return_id" | "order_item_id" | "product_name" | "quantity" | "unit_price" | "refund_amount"
+      >;
       order_items: TableDef<
         OrderItemRow,
         "order_id" | "product_name" | "quantity" | "regular_price" | "final_price" | "subtotal"
@@ -201,7 +236,34 @@ export interface Database {
       promotions: TableDef<PromotionRow, "title" | "start_date" | "end_date">;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      fn_record_return: {
+        Args: {
+          p_order_id: string;
+          p_processed_by: string;
+          p_refund_method: PaymentMethod;
+          p_reason: string;
+          p_notes: string | null;
+          p_lines: { order_item_id: string; quantity: number; restock: boolean }[];
+        };
+        Returns: { out_return_id: string; out_return_number: string; out_refund_total: number }[];
+      };
+      fn_record_walk_in_sale: {
+        Args: {
+          p_customer_id: string;
+          p_sold_by: string;
+          p_payment_method: PaymentMethod;
+          p_notes: string | null;
+          p_lines: {
+            product_id: string;
+            quantity: number;
+            regular_price: number;
+            final_price: number;
+          }[];
+        };
+        Returns: { out_order_id: string; out_order_number: string }[];
+      };
+    };
     Enums: {
       product_status: ProductStatus;
       discount_type: DiscountType;
@@ -210,6 +272,8 @@ export interface Database {
       promotion_cta_type: PromotionCtaType;
       order_status: OrderStatus;
       payment_status: PaymentStatus;
+      sales_channel: SalesChannel;
+      payment_method: PaymentMethod;
       user_role: UserRole;
     };
     CompositeTypes: Record<string, never>;
