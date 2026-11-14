@@ -39,7 +39,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
     href="/admin/orders"
     className="inline-flex items-center text-sm text-taupe transition-colors hover:text-rose"
   >
-    ← Back to Orders
+    Back to Orders
   </Link>
 
   <div className="mt-4 flex items-center justify-between">
