@@ -80,7 +80,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setLines((prev) => prev.filter((l) => l.productId !== productId));
   }, []);
 
-  const clear = useCallback(() => setLines([]), []);
+  const clear = useCallback(() => {
+    // Remove the saved copy too. On a fresh page load the cart provider reads
+    // localStorage right after this runs, and would otherwise put the old
+    // items straight back.
+    try {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Storage unavailable: nothing saved to remove.
+    }
+    setLines([]);
+  }, []);
 
   const { itemCount, subtotal, discountTotal, total } = useMemo(() => {
     const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
