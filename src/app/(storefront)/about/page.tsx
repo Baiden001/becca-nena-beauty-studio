@@ -7,7 +7,7 @@ export default function AboutPage() {
       <h1 className="mt-2 font-serif text-4xl text-brown">Becca Nena Beauty Studio</h1>
       <div className="mt-6">
         <LayoutImage
-          src="images/about-page.png"
+          src="images/about-page.JPG"
           alt="Becca Nena Beauty Studio"
           aspectClassName="aspect-[9/16]"
           bgClassName="bg-taupe/20"
