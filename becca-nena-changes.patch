@@ -332,10 +332,15 @@ index 61557f8..348536c 100644
 \ No newline at end of file
 +}
 diff --git a/src/app/(storefront)/page.tsx b/src/app/(storefront)/page.tsx
-index 223e4ec..8dbbeee 100644
+index 223e4ec..3b9b678 100644
 --- a/src/app/(storefront)/page.tsx
 +++ b/src/app/(storefront)/page.tsx
-@@ -7,9 +7,9 @@ import { waLink } from "@/lib/whatsapp";
+@@ -3,13 +3,14 @@ import { createClient } from "@/lib/supabase/server";
+ import { ProductCard } from "@/components/product-card";
+ import { LayoutImage } from "@/components/layout-image";
+ import { HeroVideo } from "@/components/hero-video";
++import { HairSiteBanner } from "@/components/hair-site-banner";
+ import { waLink } from "@/lib/whatsapp";
  
  const ORDER_STEPS = [
    { step: "01", label: "Choose your products" },
@@ -348,7 +353,27 @@ index 223e4ec..8dbbeee 100644
    { step: "05", label: "Receive your order" },
  ];
  
-@@ -71,8 +71,8 @@ export default async function Home() {
+@@ -46,7 +47,7 @@ export default async function Home() {
+           so nothing breaks before real footage is added. A fixed
+           min-height means no layout shift either way — the section's
+           size never depends on what loads inside it. */}
+-      <section className="relative min-h-[80vh] w-full overflow-hidden sm:min-h-[90vh]">
++      <section id="hero" className="relative min-h-[80vh] w-full overflow-hidden sm:min-h-[90vh]">
+         <LayoutImage
+           src="images/hero.jpg"
+           alt=""
+@@ -61,6 +62,10 @@ export default async function Home() {
+             darkest at the bottom where the text sits, fading upward. */}
+         <div className="absolute inset-0 bg-gradient-to-t from-brown/75 via-brown/25 to-transparent" />
+ 
++        {/* Soft shade at the very top so the floating header stays readable
++            over any image or video. */}
++        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-brown/40 to-transparent" />
++
+         <div className="relative z-10 flex min-h-[80vh] items-end sm:min-h-[90vh]">
+           <div className="mx-auto w-full max-w-6xl px-6 pb-14 sm:pb-20">
+             <div className="fade-in max-w-xl">
+@@ -71,8 +76,8 @@ export default async function Home() {
                </h1>
                <p className="mt-5 max-w-md text-cream/85">
                  A premium edit of makeup, skincare, and fragrance, picked the way
@@ -359,6 +384,16 @@ index 223e4ec..8dbbeee 100644
                </p>
                <div className="mt-8 flex flex-wrap gap-4">
                  <Link
+@@ -216,6 +221,9 @@ export default async function Home() {
+         </div>
+       </section>
+ 
++      {/* Link to the hair website */}
++      <HairSiteBanner />
++
+       {/* Final CTA */}
+       <section className="bg-brown py-16 text-center">
+         <p className="font-serif text-2xl text-cream">Shop Beauty</p>
 diff --git a/src/app/actions/newsletter.ts b/src/app/actions/newsletter.ts
 new file mode 100644
 index 0000000..893f6a0
@@ -1023,6 +1058,19 @@ index ca750a3..a8ce613 100644
 +    transform: translateY(0) scale(1);
 +  }
 +}
+diff --git a/src/components/cart-indicator.tsx b/src/components/cart-indicator.tsx
+index be4fe41..7f2ffad 100644
+--- a/src/components/cart-indicator.tsx
++++ b/src/components/cart-indicator.tsx
+@@ -11,7 +11,7 @@ export function CartIndicator() {
+     <Link
+       href="/cart"
+       aria-label={`Cart, ${itemCount} item${itemCount === 1 ? "" : "s"}`}
+-      className="relative flex items-center text-brown hover:text-rose"
++      className="relative flex items-center hover:text-rose"
+     >
+       <ShoppingBag size={20} strokeWidth={1.75} />
+       {itemCount > 0 && (
 diff --git a/src/components/clear-cart-on-paid.tsx b/src/components/clear-cart-on-paid.tsx
 new file mode 100644
 index 0000000..d932e0b
@@ -1042,12 +1090,70 @@ index 0000000..d932e0b
 +  }, [clear]);
 +  return null;
 +}
+diff --git a/src/components/hair-site-banner.tsx b/src/components/hair-site-banner.tsx
+new file mode 100644
+index 0000000..4b3e69f
+--- /dev/null
++++ b/src/components/hair-site-banner.tsx
+@@ -0,0 +1,25 @@
++import { HAIR_SITE } from "@/lib/links";
++
++// A statement plus link that sends visitors to the hair website.
++export function HairSiteBanner() {
++  return (
++    <section className="mx-auto max-w-6xl px-6 py-14">
++      <div className="rounded-lg border border-rose/30 bg-rose-light/20 px-8 py-12 text-center">
++        <p className="eyebrow">
++          {HAIR_SITE.name} · {HAIR_SITE.short}
++        </p>
++        <h2 className="mt-2 font-serif text-2xl text-brown sm:text-3xl">
++          Looking for hair too? Visit {HAIR_SITE.name} ({HAIR_SITE.short}).
++        </h2>
++        <a
++          href={HAIR_SITE.url}
++          target="_blank"
++          rel="noopener noreferrer"
++          className="mt-6 inline-block rounded-full bg-brown px-7 py-3 text-sm font-medium text-cream transition-colors hover:bg-rose"
++        >
++          Visit {HAIR_SITE.short} ↗
++        </a>
++      </div>
++    </section>
++  );
++}
+diff --git a/src/components/logo.tsx b/src/components/logo.tsx
+index 463c726..795ceb0 100644
+--- a/src/components/logo.tsx
++++ b/src/components/logo.tsx
+@@ -1,6 +1,13 @@
+ import Image from "next/image";
+ 
+-export function Logo({ size = 28 }: { size?: number }) {
++export function Logo({
++  size = 28,
++  light = false,
++}: {
++  size?: number;
++  /** White version, for sitting on top of the hero image or video. */
++  light?: boolean;
++}) {
+   return (
+     <Image
+       src="/images/logo.png"
+@@ -8,6 +15,7 @@ export function Logo({ size = 28 }: { size?: number }) {
+       width={size}
+       height={size * 1.58}
+       style={{ height: size * 1.58, width: "auto" }}
++      className={light ? "brightness-0 invert" : undefined}
+       priority
+     />
+   );
 diff --git a/src/components/menu-drawer.tsx b/src/components/menu-drawer.tsx
 new file mode 100644
-index 0000000..e8db16d
+index 0000000..611421e
 --- /dev/null
 +++ b/src/components/menu-drawer.tsx
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,115 @@
 +"use client";
 +
 +import { useEffect, useState } from "react";
@@ -1057,6 +1163,7 @@ index 0000000..e8db16d
 +import { Logo } from "@/components/logo";
 +import { NAV_LINKS } from "@/lib/nav-links";
 +import { waLink } from "@/lib/whatsapp";
++import { HAIR_SITE } from "@/lib/links";
 +
 +export function MenuDrawer() {
 +  const [open, setOpen] = useState(false);
@@ -1083,7 +1190,7 @@ index 0000000..e8db16d
 +        onClick={() => setOpen(true)}
 +        aria-label="Open menu"
 +        aria-expanded={open}
-+        className="text-brown hover:text-rose"
++        className="hover:text-rose"
 +      >
 +        <Menu size={24} strokeWidth={1.5} />
 +      </button>
@@ -1130,6 +1237,14 @@ index 0000000..e8db16d
 +              </nav>
 +
 +              <div className="mt-auto space-y-3 pt-8 text-sm text-taupe">
++                <a
++                  href={HAIR_SITE.url}
++                  target="_blank"
++                  rel="noopener noreferrer"
++                  className="block text-brown hover:text-rose"
++                >
++                  {HAIR_SITE.name} ({HAIR_SITE.short}) ↗
++                </a>
 +                <a
 +                  href={waLink("Hi Becca Nena, I have a question about your products.")}
 +                  target="_blank"
@@ -1432,12 +1547,13 @@ index 0000000..40ab1f9
 +  );
 +}
 diff --git a/src/components/site-footer.tsx b/src/components/site-footer.tsx
-index 4eef314..53c1ea0 100644
+index 4eef314..da50e55 100644
 --- a/src/components/site-footer.tsx
 +++ b/src/components/site-footer.tsx
-@@ -1,9 +1,20 @@
+@@ -1,9 +1,21 @@
  import Link from "next/link";
  import { waLink } from "@/lib/whatsapp";
++import { HAIR_SITE } from "@/lib/links";
 +import { NewsletterSignup } from "@/components/newsletter-signup";
  
  export function SiteFooter() {
@@ -1456,12 +1572,33 @@ index 4eef314..53c1ea0 100644
        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 sm:grid-cols-3">
          <div>
            <p className="font-serif text-lg text-brown">Becca Nena Beauty Studio</p>
+@@ -44,6 +56,16 @@ export function SiteFooter() {
+                 @the.bnb.studio
+               </a>
+             </li>
++            <li>
++              <a
++                href={HAIR_SITE.url}
++                target="_blank"
++                rel="noopener noreferrer"
++                className="hover:text-rose"
++              >
++                Visit {HAIR_SITE.name} ({HAIR_SITE.short}) ↗
++              </a>
++            </li>
+           </ul>
+         </div>
+       </div>
 diff --git a/src/components/site-header.tsx b/src/components/site-header.tsx
-index 8fb2228..3640fd2 100644
+index 8fb2228..29e0010 100644
 --- a/src/components/site-header.tsx
 +++ b/src/components/site-header.tsx
-@@ -1,49 +1,37 @@
+@@ -1,51 +1,72 @@
++"use client";
++
++import { useEffect, useState } from "react";
  import Link from "next/link";
++import { usePathname } from "next/navigation";
 +import { Search } from "lucide-react";
  import { CartIndicator } from "@/components/cart-indicator";
 -import { MobileNav } from "@/components/mobile-nav";
@@ -1470,22 +1607,35 @@ index 8fb2228..3640fd2 100644
 -import { NAV_LINKS } from "@/lib/nav-links";
 -import { waLink } from "@/lib/whatsapp";
  
-+// Minimal three-part header: menu on the left, logo dead-centre, search and
-+// bag on the right. The 1fr / auto / 1fr grid keeps the logo truly centred
-+// no matter how wide the left and right groups are.
++const SCROLL_THRESHOLD = 40; // px scrolled before the header gets its background
++
++// Floating header. At the very top it's fully transparent: on the homepage it
++// sits on the hero (image or video) in white. Once you scroll, it gets a
++// frosted cream background and switches to the brand brown so it stays
++// readable over products and text.
  export function SiteHeader() {
++  const pathname = usePathname();
++  const isHome = pathname === "/";
++  const [scrolled, setScrolled] = useState(false);
++
++  useEffect(() => {
++    const update = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
++    update();
++    window.addEventListener("scroll", update, { passive: true });
++    return () => window.removeEventListener("scroll", update);
++  }, []);
++
++  // White only while transparent over the hero.
++  const light = isHome && !scrolled;
++
    return (
-     <header className="sticky top-0 z-40 border-b border-rose/20 bg-cream/95 backdrop-blur">
+-    <header className="sticky top-0 z-40 border-b border-rose/20 bg-cream/95 backdrop-blur">
 -      <div className="relative mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
 -        <Link href="/" className="flex items-center gap-2.5">
 -          <Logo size={26} />
 -          <span className="font-serif text-xl tracking-tight text-brown">Becca Nena</span>
 -        </Link>
-+      <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-6">
-+        <div className="flex justify-start">
-+          <MenuDrawer />
-+        </div>
- 
+-
 -        <nav className="hidden gap-8 md:flex" aria-label="Main">
 -          {NAV_LINKS.map((link) => (
 -            <Link
@@ -1497,24 +1647,30 @@ index 8fb2228..3640fd2 100644
 -            </Link>
 -          ))}
 -        </nav>
-+        <Link
-+          href="/"
-+          aria-label="Becca Nena Beauty Studio, home"
-+          className="flex items-center justify-center"
-+        >
-+          <Logo size={22} />
-+        </Link>
++    <>
++      <header
++        className={`fixed inset-x-0 top-0 z-40 border-b transition-colors duration-300 ${
++          scrolled
++            ? "border-rose/20 bg-cream/95 text-brown backdrop-blur"
++            : `border-transparent ${light ? "text-cream" : "text-brown"}`
++        }`}
++      >
++        <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-6">
++          <div className="flex justify-start">
++            <MenuDrawer />
++          </div>
  
 -        <div className="flex items-center gap-5">
-+        <div className="flex items-center justify-end gap-5">
            <Link
-             href="/shop"
-             aria-label="Search products"
+-            href="/shop"
+-            aria-label="Search products"
 -            className="hidden text-sm text-brown hover:text-rose sm:inline"
-+            className="text-brown hover:text-rose"
++            href="/"
++            aria-label="Becca Nena Beauty Studio, home"
++            className="flex items-center justify-center"
            >
 -            Search
-+            <Search size={20} strokeWidth={1.75} />
++            <Logo size={22} light={light} />
            </Link>
 -          <a
 -            href={waLink("Hi Becca Nena, I have a question about your products.")}
@@ -1524,11 +1680,71 @@ index 8fb2228..3640fd2 100644
 -          >
 -            WhatsApp
 -          </a>
-           <CartIndicator />
+-          <CartIndicator />
 -          <MobileNav />
++
++          <div className="flex items-center justify-end gap-5">
++            <Link
++              href="/shop"
++              aria-label="Search products"
++              className="hover:text-rose"
++            >
++              <Search size={20} strokeWidth={1.75} />
++            </Link>
++            <CartIndicator />
++          </div>
          </div>
-       </div>
-     </header>
+-      </div>
+-    </header>
++      </header>
++
++      {/* A fixed header no longer takes up space, so every page except the
++          homepage (whose hero should reach the very top) gets a spacer. */}
++      {!isHome && <div aria-hidden className="h-16" />}
++    </>
+   );
+ }
+diff --git a/src/lib/base-url.ts b/src/lib/base-url.ts
+index 71198e8..da91eaf 100644
+--- a/src/lib/base-url.ts
++++ b/src/lib/base-url.ts
+@@ -1,11 +1,20 @@
+ import { headers } from "next/headers";
+ 
++// Where Paystack should send the customer back to after paying. The address
++// the customer is actually browsing on is the safest choice: it can't go
++// stale, and the cart (stored in the browser per website address) is still
++// there when they return. NEXT_PUBLIC_SITE_URL is only a fallback.
+ export function getBaseUrl(): string {
++  const headerList = headers();
++  const host = headerList.get("x-forwarded-host") ?? headerList.get("host");
++
++  if (host) {
++    const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
++    return `${isLocal ? "http" : "https"}://${host}`;
++  }
++
+   const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
+   if (envUrl) return envUrl.replace(/\/$/, "");
+ 
+-  const headerList = headers();
+-  const host = headerList.get("host");
+-  const protocol = host?.startsWith("localhost") ? "http" : "https";
+-  return `${protocol}://${host}`;
++  throw new Error("Could not work out the site address for the payment callback");
+ }
+diff --git a/src/lib/links.ts b/src/lib/links.ts
+new file mode 100644
+index 0000000..44113c8
+--- /dev/null
++++ b/src/lib/links.ts
+@@ -0,0 +1,6 @@
++// Sister brand: Becca Nena's hair website.
++export const HAIR_SITE = {
++  name: "Becca Nena Hair",
++  short: "BNH",
++  url: "https://beccanenahair.com",
++} as const;
 diff --git a/src/lib/payments.ts b/src/lib/payments.ts
 new file mode 100644
 index 0000000..701ae3c
