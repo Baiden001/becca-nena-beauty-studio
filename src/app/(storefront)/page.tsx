@@ -2,9 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ProductCard } from "@/components/product-card";
 import { LayoutImage } from "@/components/layout-image";
-import { HeroVideo } from "@/components/hero-video";
+import { HeroDrift } from "@/components/hero-drift";
 import { HairSiteBanner } from "@/components/hair-site-banner";
-import { waLink } from "@/lib/whatsapp";
 
 const ORDER_STEPS = [
   { step: "01", label: "Choose your products" },
@@ -40,65 +39,7 @@ export default async function Home() {
 
   return (
     <main>
-      {/* Hero — full-bleed, works the same way on mobile and desktop
-          instead of split-layout-on-desktop / stacked-on-mobile. A looping
-          video sits behind the text if /public/videos/hero.mp4 exists;
-          otherwise the static hero image (or brand color) shows instead,
-          so nothing breaks before real footage is added. A fixed
-          min-height means no layout shift either way — the section's
-          size never depends on what loads inside it. */}
-      <section id="hero" className="relative min-h-[80vh] w-full overflow-hidden sm:min-h-[90vh]">
-        <LayoutImage
-          src="images/hero.jpg"
-          alt=""
-          mode="cover"
-          bgClassName="bg-rose-light/50"
-          priority
-          sizes="100vw"
-        />
-        <HeroVideo />
-
-        {/* Scrim for text legibility over either the video or the image —
-            darkest at the bottom where the text sits, fading upward. */}
-        <div className="absolute inset-0 bg-gradient-to-t from-brown/75 via-brown/25 to-transparent" />
-
-        {/* Soft shade at the very top so the floating header stays readable
-            over any image or video. */}
-        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-brown/40 to-transparent" />
-
-        <div className="relative z-10 flex min-h-[80vh] items-end sm:min-h-[90vh]">
-          <div className="mx-auto w-full max-w-6xl px-6 pb-14 sm:pb-20">
-            <div className="fade-in max-w-xl">
-              <p className="eyebrow text-cream/80">@the.bnb.studio</p>
-              <h1 className="mt-4 font-serif text-4xl leading-[1.1] text-cream sm:text-5xl">
-                Beauty, <span className="italic text-rose-light">curated.</span> Not
-                just sold.
-              </h1>
-              <p className="mt-5 max-w-md text-cream/85">
-                A premium edit of makeup, skincare, and fragrance, picked the way
-                we&apos;d recommend it to a friend. Pay securely online with Mobile
-                Money or card, and our team confirms delivery with you directly.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-4">
-                <Link
-                  href="/shop"
-                  className="rounded-full bg-rose px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-brown"
-                >
-                  Shop Now
-                </Link>
-                <a
-                  href={waLink("Hi Becca Nena, I'd like to place an order.")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-full border border-cream/70 px-6 py-3 text-sm font-medium text-cream transition-colors hover:border-rose hover:text-rose-light"
-                >
-                  Order via WhatsApp
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HeroDrift />
 
       {/* Shop by category */}
       {!!categories?.length && (
