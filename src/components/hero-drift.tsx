@@ -42,7 +42,6 @@ export function HeroDrift() {
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-x-14 md:gap-y-0">
         {/* Text */}
         <div className="fade-in text-center md:col-start-1 md:row-start-1 md:self-end md:pb-4 md:text-left">
-          <p className="eyebrow">@the.bnb.studio</p>
           <h1 className="mt-4 font-serif text-4xl leading-[1.1] text-brown sm:text-5xl lg:text-6xl">
             Beauty, <span className="italic text-rose">curated.</span> Not just sold.
           </h1>
