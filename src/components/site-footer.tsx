@@ -61,9 +61,9 @@ export function SiteFooter() {
                 href={HAIR_SITE.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-rose"
+                className="underline decoration-rose/60 underline-offset-4 hover:text-rose"
               >
-                Visit {HAIR_SITE.name} ({HAIR_SITE.short}) ↗
+                Visit {HAIR_SITE.name} ({HAIR_SITE.short})
               </a>
             </li>
           </ul>

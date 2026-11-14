@@ -103,7 +103,7 @@ export function AddToCartForm({
           onClick={handleAdd}
           className="flex-1 rounded-full bg-rose px-6 py-3 text-sm font-medium text-cream transition-colors hover:bg-brown disabled:cursor-not-allowed disabled:bg-taupe/40"
         >
-          {isSoldOut ? "Out of stock" : added ? "Added ✓" : "Add to Cart"}
+          {isSoldOut ? "Out of stock" : added ? "Added" : "Add to Cart"}
         </button>
       </div>
 

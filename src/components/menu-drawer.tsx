@@ -85,9 +85,9 @@ export function MenuDrawer() {
                   href={HAIR_SITE.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-brown hover:text-rose"
+                  className="block text-brown underline decoration-rose/60 underline-offset-4 hover:text-rose"
                 >
-                  {HAIR_SITE.name} ({HAIR_SITE.short}) ↗
+                  {HAIR_SITE.name} ({HAIR_SITE.short})
                 </a>
                 <a
                   href={waLink("Hi Becca Nena, I have a question about your products.")}
