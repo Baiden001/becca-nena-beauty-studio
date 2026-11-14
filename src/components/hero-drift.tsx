@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutImage } from "@/components/layout-image";
+import { HeroImage } from "@/components/hero-image";
 import { DriftTrack } from "@/components/hero-drift-track";
 import { HERO_ITEMS, type HeroItem } from "@/lib/hero-items";
 import { waLink } from "@/lib/whatsapp";
@@ -12,14 +12,21 @@ import { waLink } from "@/lib/whatsapp";
 // Everyone can also swipe or drag to bring back an image that just passed.
 // There are no arrow buttons and no captions: the images speak for themselves.
 
-function Card({ item, className = "" }: { item: HeroItem; className?: string }) {
+function Card({
+  item,
+  className = "",
+  priority = false,
+}: {
+  item: HeroItem;
+  className?: string;
+  priority?: boolean;
+}) {
   return (
     <div className={className}>
-      <LayoutImage
+      <HeroImage
         src={item.image}
         alt={item.alt}
-        aspectClassName="aspect-[4/5]"
-        bgClassName="bg-rose-light/40"
+        priority={priority}
         sizes="(min-width: 768px) 22vw, 240px"
       />
     </div>
@@ -31,8 +38,8 @@ export function HeroDrift() {
   const columnB = HERO_ITEMS.filter((_, i) => i % 2 === 1);
 
   return (
-    <section id="hero" className="bg-cream pb-12 pt-24 md:pb-16 md:pt-28">
-      <div className="mx-auto grid max-w-6xl gap-8 px-6 md:grid-cols-[0.9fr_1.1fr] md:gap-x-14 md:gap-y-0">
+    <section id="hero" className="overflow-x-clip bg-cream pb-12 pt-24 md:pb-16 md:pt-28">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-x-14 md:gap-y-0">
         {/* Text */}
         <div className="fade-in text-center md:col-start-1 md:row-start-1 md:self-end md:pb-4 md:text-left">
           <p className="eyebrow">@the.bnb.studio</p>
@@ -47,7 +54,7 @@ export function HeroDrift() {
         </div>
 
         {/* Moving product cards */}
-        <div className="md:col-start-2 md:row-span-2 md:row-start-1">
+        <div className="min-w-0 md:col-start-2 md:row-span-2 md:row-start-1">
           {/* Phone: one strip, drifting sideways */}
           <DriftTrack
             axis="x"
@@ -55,8 +62,8 @@ export function HeroDrift() {
             dragWith="all"
             className="-mx-6 [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)] md:hidden"
           >
-            {HERO_ITEMS.map((item) => (
-              <Card key={item.image} item={item} className="w-[240px] shrink-0 pr-3" />
+            {HERO_ITEMS.map((item, i) => (
+              <Card key={item.image} item={item} priority={i < 2} className="w-[240px] shrink-0 pr-3" />
             ))}
           </DriftTrack>
 
