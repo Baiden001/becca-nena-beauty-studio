@@ -114,8 +114,7 @@ export default async function Home() {
           <div>
             <p className="eyebrow">About Becca Nena</p>
             <p className="mt-4 max-w-md font-serif text-2xl leading-snug text-brown">
-              A cosmetics studio in Accra, built on one idea: beauty
-              shopping should feel like a recommendation, not a catalogue.
+              A cosmetics studio in Accra, built on one idea: beauty shopping should feel an experience.
             </p>
           </div>
         </div>
