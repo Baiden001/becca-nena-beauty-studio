@@ -18,7 +18,7 @@ export function HairSiteBanner() {
             {HAIR_SITE.name} · {HAIR_SITE.short}
           </p>
           <h2 className="mt-3 font-serif text-3xl leading-tight text-brown sm:text-4xl">
-            Looking for hair too?
+            Looking for hair extensions?
           </h2>
           <p className="mt-4 text-taupe">
             Visit{" "}
