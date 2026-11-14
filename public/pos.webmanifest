@@ -1,0 +1,16 @@
+{
+  "name": "Becca Nena Point of Sale",
+  "short_name": "BN POS",
+  "description": "In-store sales, stock and orders for Becca Nena Beauty Studio.",
+  "start_url": "/admin/walk-in",
+  "scope": "/admin",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F8F4EF",
+  "theme_color": "#F8F4EF",
+  "icons": [
+    { "src": "/icons/pos-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/pos-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/pos-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
