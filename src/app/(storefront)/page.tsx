@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProductCard } from "@/components/product-card";
 import { LayoutImage } from "@/components/layout-image";
 import { HeroVideo } from "@/components/hero-video";
+import { HairSiteBanner } from "@/components/hair-site-banner";
 import { waLink } from "@/lib/whatsapp";
 
 const ORDER_STEPS = [
@@ -219,6 +220,9 @@ export default async function Home() {
           ))}
         </div>
       </section>
+
+      {/* Link to the hair website */}
+      <HairSiteBanner />
 
       {/* Final CTA */}
       <section className="bg-brown py-16 text-center">
