@@ -64,7 +64,7 @@ export default async function OrderConfirmationPage({
 
   return (
     <main className="mx-auto max-w-xl px-6 py-24 text-center">
-      {paid && <ClearCartOnPaid />}
+      {paid && <ClearCartOnPaid orderNumber={order.order_number} />}
 
       <span
         className={`swatch-dot h-4 w-4 ${paid ? "bg-sage" : failed ? "bg-red-400" : "bg-rose-light"}`}
