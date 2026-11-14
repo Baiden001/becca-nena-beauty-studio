@@ -76,7 +76,7 @@ export function InviteStaffForm() {
       >
         {submitting ? "Sending…" : "Send invite"}
       </button>
-      {sent && <p className="text-xs font-medium text-rose">Invite sent ✓</p>}
+      {sent && <p className="text-xs font-medium text-rose">Invite sent</p>}
       {error && <p className="w-full field-error">{error}</p>}
     </form>
   );
