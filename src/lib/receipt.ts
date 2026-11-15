@@ -6,10 +6,10 @@ export const RECEIPT_CONFIG = {
   shopName: "Becca Nena",
   tagline: "BEAUTY STUDIO",
   website: "beccanenabeautystudio.com",
-  instagram: "@beccanena",
+  instagram: "@the.bnb.studio",
   phone: "+233 24 701 8569",
   /** Printed under the contact line. Leave empty to leave it off. */
-  storeLocation: "",
+  storeLocation: "East Legon, Boundary Rd",
 } as const;
 
 // QR code for https://beccanenabeautystudio.com, generated once so printing
