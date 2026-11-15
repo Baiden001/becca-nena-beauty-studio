@@ -9,6 +9,7 @@ import {
   type SaleProduct,
 } from "@/app/actions/admin/walk-in";
 import { beep } from "@/lib/beep";
+import { printReceipt } from "@/lib/receipt";
 import { formatCedis } from "@/lib/pricing";
 import type { PaymentMethod } from "@/types/database";
 
@@ -41,7 +42,8 @@ export function WalkInSale({ staffName }: { staffName: string }) {
     total: number;
     method: string;
     paidAt: Date;
-    items: { name: string; quantity: number; price: number }[];
+    customerName: string;
+    items: { name: string; quantity: number; unitPrice: number; regularPrice: number }[];
   } | null>(null);
 
   // Always-current copy of the items, so scans that arrive back to back
@@ -213,10 +215,12 @@ export function WalkInSale({ staffName }: { staffName: string }) {
       total: result.total ?? total,
       method: METHODS.find((m) => m.value === method)?.label ?? "",
       paidAt: new Date(),
+      customerName: customerName.trim(),
       items: lines.map((l) => ({
         name: `${l.product.brand ? `${l.product.brand} ` : ""}${l.product.name}`,
         quantity: l.quantity,
-        price: l.product.price,
+        unitPrice: l.product.price,
+        regularPrice: l.product.regularPrice,
       })),
     });
   }
@@ -251,7 +255,16 @@ export function WalkInSale({ staffName }: { staffName: string }) {
             New sale
           </button>
           <button
-            onClick={() => printReceipt(receipt, staffName)}
+            onClick={() =>
+              printReceipt({
+                orderNumber: receipt.orderNumber,
+                paidAt: receipt.paidAt,
+                cashier: staffName,
+                customerName: receipt.customerName,
+                items: receipt.items,
+                paymentMethod: receipt.method,
+              })
+            }
             className="inline-flex items-center gap-2 rounded-full border border-brown/40 px-6 py-2.5 text-sm font-medium text-brown hover:border-rose hover:text-rose"
           >
             <Printer size={16} aria-hidden />
@@ -473,65 +486,4 @@ export function WalkInSale({ staffName }: { staffName: string }) {
       </div>
     </div>
   );
-}
-
-interface ReceiptData {
-  orderNumber: string;
-  total: number;
-  method: string;
-  paidAt: Date;
-  items: { name: string; quantity: number; price: number }[];
-}
-
-const escapeHtml = (v: string) =>
-  v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-
-// Prints a narrow till-style receipt through the browser's print dialog
-// (works with a normal printer or a receipt printer installed on the device).
-function printReceipt(r: ReceiptData, staffName: string) {
-  const rows = r.items
-    .map(
-      (i) =>
-        `<tr><td colspan="2">${escapeHtml(i.name)}</td></tr>
-         <tr><td class="dim">${i.quantity} x ${escapeHtml(formatCedis(i.price))}</td><td class="r">${escapeHtml(formatCedis(i.price * i.quantity))}</td></tr>`
-    )
-    .join("");
-
-  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${escapeHtml(r.orderNumber)}</title>
-<style>
-  @page { margin: 6mm; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; width: 70mm; margin: 0 auto; }
-  h1 { font-size: 15px; text-align: center; margin: 0 0 2px; }
-  .c { text-align: center; } .r { text-align: right; } .dim { color: #444; }
-  table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-  td { padding: 2px 0; vertical-align: top; }
-  hr { border: 0; border-top: 1px dashed #000; margin: 8px 0; }
-  .total td { font-size: 14px; font-weight: bold; padding-top: 6px; }
-</style></head><body>
-  <h1>Becca Nena Beauty Studio</h1>
-  <p class="c dim">@the.bnb.studio</p>
-  <hr>
-  <p>Receipt #${escapeHtml(r.orderNumber)}<br>${escapeHtml(r.paidAt.toLocaleString())}</p>
-  <table>${rows}</table>
-  <hr>
-  <table><tr class="total"><td>Total</td><td class="r">${escapeHtml(formatCedis(r.total))}</td></tr></table>
-  <p>Paid by: ${escapeHtml(r.method)}<br>Served by: ${escapeHtml(staffName)}</p>
-  <hr>
-  <p class="c">Thank you for shopping with us.</p>
-</body></html>`;
-
-  const frame = document.createElement("iframe");
-  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
-  document.body.appendChild(frame);
-  const doc = frame.contentDocument;
-  if (!doc || !frame.contentWindow) {
-    frame.remove();
-    return;
-  }
-  doc.open();
-  doc.write(html);
-  doc.close();
-  frame.contentWindow.focus();
-  frame.contentWindow.print();
-  setTimeout(() => frame.remove(), 2000);
 }
