@@ -24,7 +24,7 @@ export async function updateOrderStatus(
 
     const { data: order, error: fetchError } = await supabase
       .from("orders")
-      .select("id, order_number, status")
+      .select("id, order_number, status, channel")
       .eq("id", orderId)
       .single();
 
@@ -32,6 +32,12 @@ export async function updateOrderStatus(
 
     if (fetchError || !order) {
       return { ok: false, error: "Order not found." };
+    }
+
+    // In-store sales are finished and already deducted from stock when they
+    // are recorded; changing their status could deduct stock a second time.
+    if (order.channel === "walk_in") {
+      return { ok: false, error: "In-store sales can't be changed here." };
     }
 
     const wasConfirmed =
