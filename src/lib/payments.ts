@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getBaseUrl } from "@/lib/base-url";
 import type { PaystackTransaction } from "@/lib/paystack";
 
 /**
@@ -67,10 +68,35 @@ export async function markOrderPaid(
   return { ok: true };
 }
 
+// Ghana numbers are usually saved as 024xxxxxxx. WhatsApp links need 233xxxxxxxxx.
+function whatsappDigits(raw: string | null): string | null {
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 9) return null;
+  if (digits.startsWith("233")) return digits;
+  if (digits.startsWith("0")) return `233${digits.slice(1)}`;
+  return digits;
+}
+
+const escapeHtml = (v: string) =>
+  v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+const cedis = (n: number) =>
+  `GH\u20B5${Number(n).toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/**
+ * Emails everyone on ORDER_NOTIFICATION_EMAIL (one address, or several
+ * separated by commas) the moment an online order is paid, with the customer's
+ * contact details and a link straight to the order in the admin.
+ */
 async function notifyStaffOfPaidOrder(orderId: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.ORDER_NOTIFICATION_EMAIL;
-  if (!apiKey || !to) {
+  const recipients = (process.env.ORDER_NOTIFICATION_EMAIL ?? "")
+    .split(/[,;\s]+/)
+    .map((e) => e.trim())
+    .filter(Boolean);
+
+  if (!apiKey || recipients.length === 0) {
     throw new Error("RESEND_API_KEY or ORDER_NOTIFICATION_EMAIL is missing");
   }
 
@@ -98,8 +124,57 @@ async function notifyStaffOfPaidOrder(orderId: string): Promise<void> {
     email: string | null;
   } | null;
 
-  const from =
-    process.env.RESEND_FROM_EMAIL || "Becca Nena <onboarding@resend.dev>";
+  // Link to the order in the admin (needs the site address; skipped if unknown).
+  let siteUrl = "";
+  try {
+    siteUrl = getBaseUrl();
+  } catch {
+    siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "").replace(/\/$/, "");
+  }
+  const adminLink = siteUrl ? `${siteUrl}/admin/orders/${orderId}` : "";
+
+  const method = order.payment_channel === "mobile_money" ? "Mobile Money" : order.payment_channel === "card" ? "Card" : "Online";
+  const wa = whatsappDigits(customer?.whatsapp ?? customer?.phone ?? null);
+  const total = cedis(order.estimated_total);
+
+  const itemLines = (items ?? []).map((i) => `${i.quantity} x ${i.product_name}  (${cedis(i.subtotal)})`);
+
+  const text = [
+    `NEW PAID ORDER #${order.order_number}: ${total} (${method})`,
+    "",
+    `Customer: ${customer?.name ?? ""}`,
+    `Phone: ${customer?.phone ?? ""}`,
+    `WhatsApp: ${customer?.whatsapp ?? ""}${wa ? `  https://wa.me/${wa}` : ""}`,
+    customer?.email ? `Email: ${customer.email}` : "",
+    `Delivery location: ${order.delivery_location}`,
+    order.notes ? `Notes: ${order.notes}` : "",
+    "",
+    "Items:",
+    ...itemLines,
+    "",
+    `Total paid: ${total}`,
+    adminLink ? `\nOpen the order: ${adminLink}` : "",
+  ]
+    .filter((line, idx, arr) => line !== "" || arr[idx - 1] !== "")
+    .join("\n");
+
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:auto;color:#2b2320">
+  <p style="font-size:12px;letter-spacing:.12em;color:#8a7a72;margin:0">NEW PAID ORDER</p>
+  <h2 style="margin:4px 0 2px">#${escapeHtml(order.order_number)} &middot; ${escapeHtml(total)}</h2>
+  <p style="margin:0 0 16px;color:#8a7a72">Paid by ${escapeHtml(method)}</p>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">
+    <tr><td style="padding:3px 0;color:#8a7a72">Customer</td><td>${escapeHtml(customer?.name ?? "")}</td></tr>
+    <tr><td style="padding:3px 0;color:#8a7a72">Phone</td><td>${customer?.phone ? `<a href="tel:${escapeHtml(customer.phone)}">${escapeHtml(customer.phone)}</a>` : ""}</td></tr>
+    <tr><td style="padding:3px 0;color:#8a7a72">WhatsApp</td><td>${wa ? `<a href="https://wa.me/${wa}">${escapeHtml(customer?.whatsapp ?? customer?.phone ?? "")}</a>` : escapeHtml(customer?.whatsapp ?? "")}</td></tr>
+    <tr><td style="padding:3px 0;color:#8a7a72">Deliver to</td><td>${escapeHtml(order.delivery_location)}</td></tr>
+    ${order.notes ? `<tr><td style="padding:3px 0;color:#8a7a72">Notes</td><td>${escapeHtml(order.notes)}</td></tr>` : ""}
+  </table>
+  <p style="margin:18px 0 6px;font-weight:bold">Items</p>
+  <ul style="padding-left:18px;margin:0;font-size:14px">${itemLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>
+  ${adminLink ? `<p style="margin:22px 0 0"><a href="${escapeHtml(adminLink)}" style="background:#b08d86;color:#fff;padding:10px 18px;border-radius:999px;text-decoration:none;font-size:14px">Open the order</a></p>` : ""}
+</div>`;
+
+  const from = process.env.RESEND_FROM_EMAIL || "Becca Nena <onboarding@resend.dev>";
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -109,27 +184,10 @@ async function notifyStaffOfPaidOrder(orderId: string): Promise<void> {
     },
     body: JSON.stringify({
       from,
-      to,
-      subject: `PAID: Becca Nena Order #${order.order_number}`,
-      text: [
-        `Payment received (${order.payment_channel === "mobile_money" ? "Mobile Money" : "Card"})`,
-        "",
-        `Customer: ${customer?.name ?? ""}`,
-        `Phone: ${customer?.phone ?? ""}`,
-        `WhatsApp: ${customer?.whatsapp ?? ""}`,
-        `Email: ${customer?.email ?? ""}`,
-        `Delivery location: ${order.delivery_location}`,
-        order.notes ? `Notes: ${order.notes}` : "",
-        "",
-        "Items:",
-        ...(items ?? []).map(
-          (i) => `${i.quantity} x ${i.product_name} — GH₵${i.subtotal}`
-        ),
-        "",
-        `Total paid: GH₵${order.estimated_total}`,
-      ]
-        .filter((line, idx, arr) => line !== "" || arr[idx - 1] !== "")
-        .join("\n"),
+      to: recipients,
+      subject: `New paid order #${order.order_number}: ${total} (${method})`,
+      text,
+      html,
     }),
   });
 
