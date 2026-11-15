@@ -19,6 +19,7 @@ interface ExistingProduct {
   brand: string | null;
   category_id: string | null;
   sku: string | null;
+  barcode: string | null;
   regular_price: number;
   discount_type: DiscountType;
   discount_value: number;
@@ -66,6 +67,7 @@ export function ProductForm({
       brand: String(form.get("brand") || ""),
       categoryId: String(form.get("categoryId") || ""),
       sku: String(form.get("sku") || ""),
+      barcode: String(form.get("barcode") || ""),
       regularPrice: Number(form.get("regularPrice") || 0),
       discountType: (String(form.get("discountType") || "none") as DiscountType),
       discountValue: Number(form.get("discountValue") || 0),
@@ -95,7 +97,17 @@ export function ProductForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      onKeyDown={(e) => {
+        // A barcode scanner "presses Enter" after each scan. Don't let that
+        // submit the whole form while the barcode box is being filled.
+        if (e.key === "Enter" && (e.target as HTMLElement).id === "barcode") {
+          e.preventDefault();
+        }
+      }}
+      className="max-w-2xl space-y-6"
+    >
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-600">
           {error}
@@ -126,6 +138,13 @@ export function ProductForm({
           </div>
           <Field label="Brand" name="brand" placeholder="Becca Nena" defaultValue={existing?.brand ?? ""} />
           <Field label="SKU" name="sku" placeholder="BN-LIP-001" defaultValue={existing?.sku ?? ""} />
+          <Field
+            label="Barcode / serial number"
+            name="barcode"
+            placeholder="Click here, then scan"
+            defaultValue={existing?.barcode ?? ""}
+            hint="Click this box and scan the product's barcode, or type it. Must be unique."
+          />
         </div>
 
         <div className="mt-4">
