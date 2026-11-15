@@ -12,6 +12,7 @@ export interface ProductFormInput {
   brand: string;
   categoryId: string;
   sku: string;
+  barcode: string;
   regularPrice: number;
   discountType: DiscountType;
   discountValue: number;
@@ -57,6 +58,7 @@ export async function createProduct(
       brand: input.brand || null,
       category_id: input.categoryId || null,
       sku: input.sku || null,
+      barcode: input.barcode.trim() || null,
       regular_price: input.regularPrice,
       discount_type: input.discountType,
       discount_value: input.discountValue,
@@ -71,7 +73,7 @@ export async function createProduct(
     .single();
 
   if (dbError || !data) {
-    return { ok: false, error: dbError?.message.includes("duplicate") ? "That slug or SKU is already in use." : "Could not create the product." };
+    return { ok: false, error: dbError?.message.includes("duplicate") ? "That slug, SKU or barcode is already in use." : "Could not create the product." };
   }
 
   await syncImagesAndVariants(supabase, data.id, input);
@@ -100,6 +102,7 @@ export async function updateProduct(
       brand: input.brand || null,
       category_id: input.categoryId || null,
       sku: input.sku || null,
+      barcode: input.barcode.trim() || null,
       regular_price: input.regularPrice,
       discount_type: input.discountType,
       discount_value: input.discountValue,
@@ -112,7 +115,14 @@ export async function updateProduct(
     })
     .eq("id", productId);
 
-  if (dbError) return { ok: false, error: "Could not save changes." };
+  if (dbError) {
+    return {
+      ok: false,
+      error: dbError.message.includes("duplicate")
+        ? "That slug, SKU or barcode is already in use."
+        : "Could not save changes.",
+    };
+  }
 
   await syncImagesAndVariants(supabase, productId, input);
 
