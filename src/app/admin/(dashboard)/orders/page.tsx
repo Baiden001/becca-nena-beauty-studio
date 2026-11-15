@@ -21,7 +21,7 @@ export default async function AdminOrdersPage({
   const supabase = createClient();
   let query = supabase
     .from("orders")
-    .select("id, order_number, status, payment_status, estimated_total, delivery_location, created_at, customers(name, phone)")
+    .select("id, order_number, status, payment_status, channel, payment_method, estimated_total, delivery_location, created_at, customers(name, phone)")
     .order("created_at", { ascending: false });
 
   if (searchParams.status) {
@@ -35,6 +35,8 @@ export default async function AdminOrdersPage({
         order_number: string;
         status: string;
         payment_status: "pending" | "paid" | "failed";
+        channel: "online" | "walk_in";
+        payment_method: string | null;
         estimated_total: number;
         created_at: string;
         customers: { name: string; phone: string | null } | null;
@@ -74,6 +76,9 @@ export default async function AdminOrdersPage({
                     <Link href={`/admin/orders/${o.id}`} className="text-brown hover:text-rose">
                       #{o.order_number}
                     </Link>
+                    {o.channel === "walk_in" && (
+                      <div className="text-xs text-taupe">In store</div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-brown">
                     {o.customers?.name}
@@ -88,7 +93,11 @@ export default async function AdminOrdersPage({
                           : "bg-rose-light/50 text-taupe"
                       }`}
                     >
-                      {o.payment_status === "paid" ? "Paid" : "Awaiting payment"}
+                      {o.payment_status === "paid"
+                        ? o.channel === "walk_in" && o.payment_method
+                          ? `Paid · ${o.payment_method.replace(/_/g, " ")}`
+                          : "Paid"
+                        : "Awaiting payment"}
                     </span>
                   </td>
                   <td className="px-4 py-3 capitalize text-brown">{o.status.replace(/_/g, " ")}</td>
