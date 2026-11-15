@@ -71,7 +71,18 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-rose/10 px-6 py-4 text-center text-xs text-taupe">
-        © {new Date().getFullYear()} Becca Nena Beauty Studio. All rights reserved.
+        <p>© {new Date().getFullYear()} Becca Nena Beauty Studio. All rights reserved.</p>
+        <p className="mt-1">
+          Designed By{" "}
+          <a
+            href="https://bales-solutions.vercel.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline decoration-rose/60 underline-offset-4 hover:text-rose"
+          >
+            Bales Solution
+          </a>
+        </p>
       </div>
     </footer>
   );
