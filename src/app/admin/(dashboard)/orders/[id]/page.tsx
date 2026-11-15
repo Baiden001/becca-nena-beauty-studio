@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatCedis } from "@/lib/pricing";
 import { waLink } from "@/lib/whatsapp";
 import { OrderStatusControl } from "@/components/admin/order-status-control";
+import { PrintReceiptButton } from "@/components/admin/print-receipt-button";
 import type { OrderStatus } from "@/types/database";
 
 export default async function AdminOrderDetailPage({ params }: { params: { id: string } }) {
@@ -58,6 +59,18 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
     : { data: [] as { return_id: string; product_name: string; quantity: number; restocked: boolean }[] };
   const canReturn = order.payment_status === "paid" && order.status !== "cancelled";
 
+  // Receipt for reprinting (paid sales only).
+  const methodLabel = (m: string | null | undefined) =>
+    ({
+      cash: "Cash",
+      mobile_money: "Mobile Money",
+      card: "Card",
+      pos_terminal: "POS terminal",
+      bank_transfer: "Bank transfer",
+    })[m ?? ""] ?? null;
+  const receiptMethod =
+    methodLabel(order.payment_method) ?? methodLabel(order.payment_channel) ?? "Online payment";
+
   const customer = order.customers as {
     name: string;
     phone: string | null;
@@ -95,6 +108,26 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
           ? `Paid${order.payment_channel === "mobile_money" ? " · Mobile Money" : order.payment_channel === "card" ? " · Card" : ""}${order.paid_at ? ` · ${new Date(order.paid_at).toLocaleString()}` : ""}`
           : "Awaiting payment"}
       </p>
+      {canReturn && (
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
+          <PrintReceiptButton
+            receipt={{
+              orderNumber: order.order_number,
+              paidAt: order.paid_at ?? order.created_at,
+              cashier: isWalkIn ? soldBy ?? "Staff" : "Online order",
+              customerName:
+                customer?.name && customer.name !== "Walk-in customer" ? customer.name : null,
+              items: (items ?? []).map((i) => ({
+                name: i.product_name,
+                quantity: i.quantity,
+                unitPrice: Number(i.final_price),
+                regularPrice: Number(i.regular_price),
+              })),
+              paymentMethod: receiptMethod,
+            }}
+          />
+        </div>
+      )}
       {canReturn && (
         <Link
           href={`/admin/returns/new?order=${order.order_number}`}
