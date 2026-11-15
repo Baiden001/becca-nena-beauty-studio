@@ -15,6 +15,11 @@ export const RECEIPT_CONFIG = {
   phone: "+233 24 701 8569",
   /** Printed under the contact line. Leave empty to leave it off. */
   storeLocation: "East Legon, Boundary Rd",
+  /**
+   * Print "Becca Nena / BEAUTY STUDIO" as text under the logo. Leave false while
+   * the logo image already contains the name, or it prints twice.
+   */
+  showNameUnderLogo: false,
 } as const;
 
 // QR code for https://beccanenabeautystudio.com, generated once so printing
@@ -70,11 +75,11 @@ const RECEIPT_CSS = `
     #${ROOT_ID} { display: block !important; }
   }
 
-  #bn-receipt { margin: 0 auto; width: 72mm; padding: 4mm 0 6mm; background: #fff; color: #000;
+  #bn-receipt { margin: 0 auto; width: 66mm; padding: 4mm 0 6mm; background: #fff; color: #000;
     font-family: Arial, Helvetica, "Segoe UI", "DejaVu Sans", sans-serif; font-size: 11.5px; line-height: 1.35; }
   #bn-receipt * { box-sizing: border-box; }
   #bn-receipt .c { text-align: center; }
-  #bn-receipt .logo { width: 24mm; height: auto; display: block; margin: 0 auto 2mm;
+  #bn-receipt .logo { width: 34mm; height: auto; display: block; margin: 0 auto 2mm;
     filter: grayscale(1) brightness(0.5) contrast(1.6); }
   #bn-receipt .brand { font-family: Georgia, "Times New Roman", serif; font-size: 22px; letter-spacing: .5px; text-align: center; }
   #bn-receipt .tagline { font-size: 8px; letter-spacing: .42em; margin-top: 1px; padding-left: .42em; text-align: center; }
@@ -121,8 +126,12 @@ export function buildReceiptBody(r: ReceiptData, origin: string): string {
   return `
   <div>
     <img class="logo" src="${esc(origin)}/images/logo.png" alt="">
-    <div class="brand">${esc(RECEIPT_CONFIG.shopName)}</div>
-    <div class="tagline">${esc(RECEIPT_CONFIG.tagline)}</div>
+    ${
+      RECEIPT_CONFIG.showNameUnderLogo
+        ? `<div class="brand">${esc(RECEIPT_CONFIG.shopName)}</div>
+    <div class="tagline">${esc(RECEIPT_CONFIG.tagline)}</div>`
+        : ""
+    }
   </div>
 
   <hr>
