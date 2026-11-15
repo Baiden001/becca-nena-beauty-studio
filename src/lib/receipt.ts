@@ -1,6 +1,11 @@
 // Receipt printing: a 80 mm thermal-style sales receipt, opened through the
 // browser's print dialog. Works with a thermal receipt printer or any printer
-// installed on the till device. Browser-only (it builds a hidden print frame).
+// installed on the till device. Browser-only.
+//
+// The receipt is placed in the page itself and a print-only style hides
+// everything else, so only the receipt comes out. (Printing from a hidden
+// frame made some browsers, notably Safari on iPhone and iPad, print the
+// whole screen instead.)
 
 export const RECEIPT_CONFIG = {
   shopName: "Becca Nena",
@@ -38,6 +43,9 @@ export interface ReceiptData {
   paymentMethod: string;
 }
 
+const ROOT_ID = "bn-receipt-root";
+const STYLE_ID = "bn-receipt-style";
+
 const money = (n: number) =>
   `GH\u20B5 ${n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -48,7 +56,51 @@ const stamp = (d: Date) =>
 const esc = (v: string) =>
   v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
-export function buildReceiptHtml(r: ReceiptData, origin: string): string {
+// Everything is scoped to #bn-receipt so it can't touch the rest of the app.
+const RECEIPT_CSS = `
+  #${ROOT_ID} { display: none; }
+
+  @page { margin: 0; }
+  @page { size: 80mm auto; }
+
+  @media print {
+    html, body { background: #fff !important; margin: 0 !important; padding: 0 !important;
+                 height: auto !important; min-height: 0 !important; overflow: visible !important; }
+    body > *:not(#${ROOT_ID}) { display: none !important; }
+    #${ROOT_ID} { display: block !important; }
+  }
+
+  #bn-receipt { margin: 0 auto; width: 72mm; padding: 4mm 0 6mm; background: #fff; color: #000;
+    font-family: Arial, Helvetica, "Segoe UI", "DejaVu Sans", sans-serif; font-size: 11.5px; line-height: 1.35; }
+  #bn-receipt * { box-sizing: border-box; }
+  #bn-receipt .c { text-align: center; }
+  #bn-receipt .logo { width: 24mm; height: auto; display: block; margin: 0 auto 2mm;
+    filter: grayscale(1) brightness(0.5) contrast(1.6); }
+  #bn-receipt .brand { font-family: Georgia, "Times New Roman", serif; font-size: 22px; letter-spacing: .5px; text-align: center; }
+  #bn-receipt .tagline { font-size: 8px; letter-spacing: .42em; margin-top: 1px; padding-left: .42em; text-align: center; }
+  #bn-receipt hr { border: 0; border-top: 1px solid #000; margin: 3.2mm 0; }
+  #bn-receipt .title { text-align: center; font-weight: bold; font-size: 12.5px; letter-spacing: .5px; margin-bottom: 2mm; }
+  #bn-receipt table { width: 100%; border-collapse: collapse; }
+  #bn-receipt td, #bn-receipt th { padding: 1.2px 0; vertical-align: top; }
+  #bn-receipt .kv td:last-child { text-align: right; }
+  #bn-receipt .kv .b { font-weight: bold; }
+  #bn-receipt .items th { font-size: 10.5px; padding-bottom: 1.6mm; border-bottom: 1px dashed #000; }
+  #bn-receipt .items th:nth-child(1) { text-align: left; }
+  #bn-receipt .items th:nth-child(2) { text-align: center; width: 12mm; }
+  #bn-receipt .items th:nth-child(3) { text-align: right; width: 24mm; }
+  #bn-receipt .items tbody tr:first-child td { padding-top: 2mm; }
+  #bn-receipt .items td { padding-bottom: 1.6mm; }
+  #bn-receipt .qty { text-align: center; }
+  #bn-receipt .amt { text-align: right; white-space: nowrap; }
+  #bn-receipt .total td { font-size: 17px; font-weight: bold; }
+  #bn-receipt .thanks { font-weight: bold; font-size: 11.5px; letter-spacing: .2px; }
+  #bn-receipt .qr { width: 27mm; height: 27mm; display: block; margin: 3mm auto 2mm; }
+  #bn-receipt .scan { font-weight: bold; font-size: 10.5px; letter-spacing: .3px; }
+  #bn-receipt .small { font-size: 10.5px; }
+  #bn-receipt .mt { margin-top: 1.2mm; }
+`;
+
+export function buildReceiptBody(r: ReceiptData, origin: string): string {
   const subtotal = r.items.reduce((s, i) => s + i.regularPrice * i.quantity, 0);
   const total = r.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
   const discount = Math.max(0, subtotal - total);
@@ -66,41 +118,8 @@ export function buildReceiptHtml(r: ReceiptData, origin: string): string {
 
   const contact = [RECEIPT_CONFIG.instagram, RECEIPT_CONFIG.phone].filter(Boolean).join("  |  ");
 
-  return `<!doctype html><html><head><meta charset="utf-8">
-<title>Receipt #${esc(r.orderNumber)}</title>
-<style>
-  @page { margin: 0; }
-  @page { size: 80mm auto; }
-  * { box-sizing: border-box; }
-  body { margin: 0 auto; width: 72mm; padding: 4mm 0 6mm; color: #000;
-         font-family: Arial, Helvetica, "Segoe UI", "DejaVu Sans", sans-serif; font-size: 11.5px; line-height: 1.35; }
-  .c { text-align: center; }
-  .logo { width: 24mm; height: auto; display: block; margin: 0 auto 2mm;
-          filter: grayscale(1) brightness(0.5) contrast(1.6); }
-  .brand { font-family: Georgia, "Times New Roman", serif; font-size: 22px; letter-spacing: .5px; }
-  .tagline { font-size: 8px; letter-spacing: .42em; margin-top: 1px; padding-left: .42em; }
-  hr { border: 0; border-top: 1px solid #000; margin: 3.2mm 0; }
-  .title { text-align: center; font-weight: bold; font-size: 12.5px; letter-spacing: .5px; margin-bottom: 2mm; }
-  table { width: 100%; border-collapse: collapse; }
-  td, th { padding: 1.2px 0; vertical-align: top; }
-  .kv td:last-child { text-align: right; }
-  .kv .b { font-weight: bold; }
-  .items th { font-size: 10.5px; padding-bottom: 1.6mm; border-bottom: 1px dashed #000; }
-  .items th:nth-child(1) { text-align: left; }
-  .items th:nth-child(2) { text-align: center; width: 12mm; }
-  .items th:nth-child(3) { text-align: right; width: 24mm; }
-  .items tbody tr:first-child td { padding-top: 2mm; }
-  .items td { padding-bottom: 1.6mm; }
-  .qty { text-align: center; }
-  .amt { text-align: right; white-space: nowrap; }
-  .total td { font-size: 17px; font-weight: bold; }
-  .thanks { font-weight: bold; font-size: 11.5px; letter-spacing: .2px; }
-  .qr { width: 27mm; height: 27mm; display: block; margin: 3mm auto 2mm; }
-  .scan { font-weight: bold; font-size: 10.5px; letter-spacing: .3px; }
-  .small { font-size: 10.5px; }
-  .mt { margin-top: 1.2mm; }
-</style></head><body>
-  <div class="c">
+  return `
+  <div>
     <img class="logo" src="${esc(origin)}/images/logo.png" alt="">
     <div class="brand">${esc(RECEIPT_CONFIG.shopName)}</div>
     <div class="tagline">${esc(RECEIPT_CONFIG.tagline)}</div>
@@ -147,43 +166,44 @@ export function buildReceiptHtml(r: ReceiptData, origin: string): string {
   <div class="c scan">SCAN TO VISIT OUR WEBSITE</div>
   <div class="c">${esc(RECEIPT_CONFIG.website)}</div>
   <div class="c small mt">${esc(contact)}</div>
-  ${RECEIPT_CONFIG.storeLocation ? `<div class="c small">${esc(RECEIPT_CONFIG.storeLocation)}</div>` : ""}
-</body></html>`;
+  ${RECEIPT_CONFIG.storeLocation ? `<div class="c small">${esc(RECEIPT_CONFIG.storeLocation)}</div>` : ""}`;
 }
 
-/** Opens the print dialog for a receipt, once the logo has finished loading. */
-export function printReceipt(receipt: ReceiptData) {
-  const frame = document.createElement("iframe");
-  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
-  document.body.appendChild(frame);
+/**
+ * Prints a receipt. The receipt is put into the page (hidden on screen) and a
+ * print-only style hides everything else, so only the receipt is printed.
+ */
+export async function printReceipt(receipt: ReceiptData) {
+  const origin = window.location.origin;
 
-  const doc = frame.contentDocument;
-  const win = frame.contentWindow;
-  if (!doc || !win) {
-    frame.remove();
-    return;
-  }
-
-  doc.open();
-  doc.write(buildReceiptHtml(receipt, window.location.origin));
-  doc.close();
-
-  const images = Array.from(doc.images);
-  const loaded = Promise.all(
-    images.map(
-      (img) =>
-        new Promise<void>((resolve) => {
-          if (img.complete) return resolve();
-          img.onload = () => resolve();
-          img.onerror = () => resolve(); // print without the logo rather than not at all
-        })
-    )
-  );
-  const timeout = new Promise<void>((resolve) => setTimeout(resolve, 2500));
-
-  void Promise.race([loaded, timeout]).then(() => {
-    win.focus();
-    win.print();
-    setTimeout(() => frame.remove(), 3000);
+  // Let the logo finish loading first, or it can print as an empty box.
+  await new Promise<void>((resolve) => {
+    const logo = new Image();
+    logo.onload = () => resolve();
+    logo.onerror = () => resolve(); // print without the logo rather than not at all
+    logo.src = `${origin}/images/logo.png`;
+    setTimeout(resolve, 2500);
   });
+
+  document.getElementById(STYLE_ID)?.remove();
+  const style = document.createElement("style");
+  style.id = STYLE_ID;
+  style.textContent = RECEIPT_CSS;
+  document.head.appendChild(style);
+
+  let root = document.getElementById(ROOT_ID);
+  if (!root) {
+    root = document.createElement("div");
+    root.id = ROOT_ID;
+    document.body.appendChild(root);
+  }
+  root.innerHTML = `<div id="bn-receipt">${buildReceiptBody(receipt, origin)}</div>`;
+
+  // Take the print-only style away again afterwards so it can't affect any
+  // other printing from the app.
+  const cleanup = () => document.getElementById(STYLE_ID)?.remove();
+  window.addEventListener("afterprint", cleanup, { once: true });
+  setTimeout(cleanup, 120_000);
+
+  window.print();
 }
