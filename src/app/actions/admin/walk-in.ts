@@ -15,6 +15,8 @@ export interface SaleProduct {
   stock: number;
   /** What the customer pays per unit today (after any active discount). */
   price: number;
+  /** The normal price before any discount. */
+  regularPrice: number;
 }
 
 const PAYMENT_METHODS: PaymentMethod[] = [
@@ -34,6 +36,7 @@ function toSaleProduct(p: ProductRow): SaleProduct {
     sku: p.sku,
     stock: p.stock_quantity,
     price: currentPrice(p),
+    regularPrice: p.regular_price,
   };
 }
 
