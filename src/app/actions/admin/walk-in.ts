@@ -17,6 +17,8 @@ export interface SaleProduct {
   price: number;
   /** The normal price before any discount. */
   regularPrice: number;
+  /** First product photo, shown on the customer screen. */
+  imageUrl: string | null;
 }
 
 const PAYMENT_METHODS: PaymentMethod[] = [
@@ -27,7 +29,7 @@ const PAYMENT_METHODS: PaymentMethod[] = [
   "bank_transfer",
 ];
 
-function toSaleProduct(p: ProductRow): SaleProduct {
+function toSaleProduct(p: ProductRow, imageUrl: string | null): SaleProduct {
   return {
     id: p.id,
     name: p.name,
@@ -37,7 +39,27 @@ function toSaleProduct(p: ProductRow): SaleProduct {
     stock: p.stock_quantity,
     price: currentPrice(p),
     regularPrice: p.regular_price,
+    imageUrl,
   };
+}
+
+// Looks up the first photo of each product in one query.
+async function withImages(
+  supabase: ReturnType<typeof createAdminClient>,
+  rows: ProductRow[]
+): Promise<SaleProduct[]> {
+  if (rows.length === 0) return [];
+  const { data } = await supabase
+    .from("product_images")
+    .select("product_id, image_url, display_order")
+    .in("product_id", rows.map((r) => r.id))
+    .order("display_order", { ascending: true });
+
+  const first = new Map<string, string>();
+  for (const img of data ?? []) {
+    if (!first.has(img.product_id)) first.set(img.product_id, img.image_url);
+  }
+  return rows.map((r) => toSaleProduct(r, first.get(r.id) ?? null));
 }
 
 // Escape the characters that act as wildcards inside a LIKE pattern.
@@ -69,7 +91,7 @@ export async function lookupProducts(query: string): Promise<{
       .limit(1)
       .maybeSingle();
     if (data) {
-      const product = toSaleProduct(data);
+      const [product] = await withImages(supabase, [data]);
       return { ok: true, exact: product, results: [product] };
     }
   }
@@ -81,14 +103,14 @@ export async function lookupProducts(query: string): Promise<{
   ]);
 
   const seen = new Set<string>();
-  const results: SaleProduct[] = [];
+  const rows: ProductRow[] = [];
   for (const row of [...(byName.data ?? []), ...(byBrand.data ?? [])]) {
     if (seen.has(row.id)) continue;
     seen.add(row.id);
-    results.push(toSaleProduct(row));
+    rows.push(row);
   }
 
-  return { ok: true, results: results.slice(0, 8) };
+  return { ok: true, results: await withImages(supabase, rows.slice(0, 8)) };
 }
 
 export interface WalkInSaleInput {
