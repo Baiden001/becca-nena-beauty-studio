@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Minus, Plus, Printer, ScanBarcode, X } from "lucide-react";
+import { CheckCircle2, Minus, Monitor, Plus, Printer, ScanBarcode, X } from "lucide-react";
 import {
   lookupProducts,
   recordWalkInSale,
@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/admin/walk-in";
 import { beep } from "@/lib/beep";
 import { printReceipt } from "@/lib/receipt";
+import { publishDisplay, startCustomerScreen } from "@/lib/customer-display";
 import { formatCedis } from "@/lib/pricing";
 import type { PaymentMethod } from "@/types/database";
 
@@ -50,6 +51,9 @@ export function WalkInSale({ staffName }: { staffName: string }) {
   // never read a stale list.
   const linesRef = useRef<Line[]>([]);
   linesRef.current = lines;
+  // Which product was scanned last, for the customer screen.
+  const lastAdded = useRef<string | null>(null);
+  const addSeq = useRef(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const focusScanner = useCallback(() => inputRef.current?.focus(), []);
@@ -85,6 +89,8 @@ export function WalkInSale({ staffName }: { staffName: string }) {
       beep(false);
     } else {
       setError(null);
+      lastAdded.current = product.id;
+      addSeq.current += 1;
       setLines((current) =>
         existing
           ? current.map((l) =>
@@ -99,6 +105,42 @@ export function WalkInSale({ staffName }: { staffName: string }) {
     setResults([]);
     focusScanner();
   }
+
+  // Tell the customer screen what is happening.
+  useEffect(() => {
+    if (receipt) return;
+    if (lines.length === 0) {
+      publishDisplay({ kind: "idle", at: Date.now() });
+      return;
+    }
+    const focus = lines.some((l) => l.product.id === lastAdded.current)
+      ? lastAdded.current
+      : lines[lines.length - 1].product.id;
+    publishDisplay({
+      kind: "sale",
+      lines: lines.map((l) => ({
+        id: l.product.id,
+        name: l.product.name,
+        brand: l.product.brand,
+        price: l.product.price,
+        quantity: l.quantity,
+        imageUrl: l.product.imageUrl,
+      })),
+      total: lines.reduce((sum, l) => sum + l.product.price * l.quantity, 0),
+      focusId: focus,
+      seq: addSeq.current,
+      at: Date.now(),
+    });
+  }, [lines, receipt]);
+
+  useEffect(() => {
+    if (receipt) publishDisplay({ kind: "thanks", total: receipt.total, at: Date.now() });
+  }, [receipt]);
+
+  // Leaving this page returns the customer screen to its idle picture.
+  useEffect(() => {
+    return () => publishDisplay({ kind: "idle", at: Date.now() });
+  }, []);
 
   // One entry point for everything that looks like a scan.
   const processCode = useCallback(async (code: string) => {
@@ -283,6 +325,17 @@ export function WalkInSale({ staffName }: { staffName: string }) {
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => startCustomerScreen()}
+          className="inline-flex items-center gap-2 rounded-full border border-brown/40 px-4 py-2 text-xs font-medium text-brown hover:border-rose hover:text-rose"
+        >
+          <Monitor size={14} aria-hidden />
+          Customer screen
+        </button>
+      </div>
+
       {/* Scan or search */}
       <form onSubmit={handleScan} className="relative">
         <label htmlFor="scan" className="field-label">
