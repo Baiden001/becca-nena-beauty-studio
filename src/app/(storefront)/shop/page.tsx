@@ -1,7 +1,43 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ProductCard } from "@/components/product-card";
 import { SortSelect } from "@/components/sort-select";
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: { q?: string; category?: string; collection?: string; sort?: string };
+}): Promise<Metadata> {
+  const { q, category, collection, sort } = searchParams;
+
+  let title = "Shop skincare and body care";
+  let canonical = "/shop";
+
+  if (category) {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("categories")
+      .select("name")
+      .eq("slug", category)
+      .maybeSingle();
+    if (data?.name) {
+      title = `${data.name}`;
+      canonical = `/shop?category=${category}`;
+    }
+  }
+
+  // Searches, sorted lists and collection filters are not worth listing on
+  // their own; the plain shop and category pages are.
+  const thin = Boolean(q || collection || (sort && sort !== "newest"));
+
+  return {
+    title,
+    description: `Shop ${title.toLowerCase()} at Becca Nena Beauty Studio. Pay securely with Mobile Money or card.`,
+    alternates: { canonical },
+    robots: thin ? { index: false, follow: true } : undefined,
+  };
+}
 
 export default async function ShopPage({
   searchParams,
@@ -21,7 +57,18 @@ export default async function ShopPage({
     .select("*, product_images(image_url), categories!inner(slug, name)")
     .eq("status", "published");
 
-  if (q) query = query.ilike("name", `%${q}%`);
+  // Search by product name OR brand. Every word must match one of the two, so
+  // "naturium", "body wash" and "eos lotion" all find what shoppers expect.
+  // Characters that have a special meaning in the filter language are removed
+  // so nobody can bend the search with them.
+  const terms = (typeof q === "string" ? q : "")
+    .split(/\s+/)
+    .map((t) => t.replace(/[,()%*\\"]/g, "").trim())
+    .filter(Boolean)
+    .slice(0, 6);
+  for (const term of terms) {
+    query = query.or(`name.ilike.%${term}%,brand.ilike.%${term}%`);
+  }
   if (category) query = query.eq("categories.slug", category);
 
   if (sort === "price_asc") query = query.order("regular_price", { ascending: true });
@@ -78,8 +125,8 @@ export default async function ShopPage({
             type="search"
             name="q"
             defaultValue={q}
-            placeholder="Search products"
-            className="w-48 rounded-full border border-taupe/25 bg-white px-4 py-2 text-sm text-brown shadow-sm outline-none transition-all duration-150 placeholder:text-taupe/50 hover:border-taupe/45 focus:border-rose focus:ring-2 focus:ring-rose/15"
+            placeholder="Search products or brands"
+            className="w-56 rounded-full border border-taupe/25 bg-white px-4 py-2 text-sm text-brown shadow-sm outline-none transition-all duration-150 placeholder:text-taupe/50 hover:border-taupe/45 focus:border-rose focus:ring-2 focus:ring-rose/15"
           />
         </form>
       </div>

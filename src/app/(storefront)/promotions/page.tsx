@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = {
+  title: "Promotions and offers",
+  description: "Current offers and promotions at Becca Nena Beauty Studio.",
+  alternates: { canonical: "/promotions" },
+};
+
 
 export default async function PromotionsPage() {
   const supabase = createClient();

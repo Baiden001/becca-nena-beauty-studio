@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { POLICIES, POLICY_CONFIG, POLICY_LINKS } from "@/lib/policies";
+import { POLICIES, POLICY_CONFIG } from "@/lib/policies";
 
 export function generateStaticParams() {
   return Object.keys(POLICIES).map((slug) => ({ slug }));
@@ -45,16 +45,18 @@ export default function PolicyPage({ params }: { params: { slug: string } }) {
 
       <nav aria-label="Other policies" className="mt-14 border-t border-rose/20 pt-6 text-sm">
         <ul className="flex flex-wrap gap-x-6 gap-y-2">
-          {POLICY_LINKS.filter((l) => l.slug !== policy.slug).map((l) => (
-            <li key={l.slug}>
-              <Link
-                href={`/policies/${l.slug}`}
-                className="text-brown underline decoration-rose/60 underline-offset-4 hover:text-rose"
-              >
-                {l.label}
-              </Link>
-            </li>
-          ))}
+          {Object.values(POLICIES)
+            .filter((other) => other.slug !== policy.slug)
+            .map((other) => (
+              <li key={other.slug}>
+                <Link
+                  href={`/policies/${other.slug}`}
+                  className="text-brown underline decoration-rose/60 underline-offset-4 hover:text-rose"
+                >
+                  {other.title}
+                </Link>
+              </li>
+            ))}
         </ul>
       </nav>
     </main>

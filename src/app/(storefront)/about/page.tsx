@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import { LayoutImage } from "@/components/layout-image";
+
+export const metadata: Metadata = {
+  title: "About us",
+  description:
+    "The story behind Becca Nena Beauty Studio: a premium skincare and body care boutique in East Legon, Accra.",
+  alternates: { canonical: "/about" },
+};
+
 
 export default function AboutPage() {
   return (

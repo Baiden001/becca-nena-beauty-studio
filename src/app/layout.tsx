@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { SITE, isLive, siteUrl } from "@/lib/site";
 import { Fraunces, Work_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -19,11 +20,41 @@ const workSans = Work_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Becca Nena Beauty Studio",
-  description: "Premium cosmetics, curated for you. Shop the edit @the.bnb.studio.",
+  metadataBase: new URL(siteUrl()),
+  title: {
+    default: `${SITE.name} | ${SITE.tagline}`,
+    template: `%s | ${SITE.name}`,
+  },
+  description: SITE.description,
+  applicationName: SITE.name,
+  alternates: { canonical: "/" },
   icons: {
     icon: "/favicon.png",
   },
+  openGraph: {
+    type: "website",
+    siteName: SITE.name,
+    locale: "en_GH",
+    title: `${SITE.name} | ${SITE.tagline}`,
+    description: SITE.description,
+    url: "/",
+    images: [{ url: SITE.ogImagePath, width: 1200, height: 630, alt: SITE.name }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE.name} | ${SITE.tagline}`,
+    description: SITE.description,
+    images: [SITE.ogImagePath],
+  },
+  // Kept out of search engines while the site is on its test address.
+  robots: isLive() ? { index: true, follow: true } : { index: false, follow: false },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#F8F4EF",
 };
 
 export default function RootLayout({
@@ -32,7 +63,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${workSans.variable}`}>
+    <html lang="en-GH" className={`${fraunces.variable} ${workSans.variable}`}>
       <body className="flex min-h-screen flex-col font-sans">{children}</body>
     </html>
   );

@@ -153,7 +153,7 @@ export const POLICIES: Record<string, Policy> = {
       {
         heading: "Cookies and similar storage",
         paragraphs: [
-          "We use only the small pieces of browser storage the site needs to work, such as remembering your cart. We do not currently use advertising cookies. If that changes, we will update this page.",
+          "We use the small pieces of browser storage the shop needs to work, such as remembering your cart. If we use analytics or advertising tools, they only run after you agree, and you can change your mind at any time. Read our Cookie policy for the details.",
         ],
       },
       {
@@ -255,6 +255,47 @@ export const POLICIES: Record<string, Policy> = {
         heading: "Changes to these terms",
         paragraphs: [
           "We may update these terms from time to time. The version on this page, with the date above, is the one that applies.",
+        ],
+      },
+      contactSection,
+    ],
+  },
+
+  "cookie-policy": {
+    slug: "cookie-policy",
+    title: "Cookie policy",
+    intro:
+      "Cookies and similar storage are small pieces of information a website keeps in your browser. This page explains which ones we use and how to control them.",
+    sections: [
+      {
+        heading: "Essential storage (always on)",
+        paragraphs: [
+          "These are needed for the shop to work and cannot be switched off:",
+        ],
+        list: [
+          "Your cart, kept in your browser so it is still there when you come back.",
+          "A note of your cookie choice, so we do not ask you every time.",
+          "A short-lived note that a promotion pop-up has already been shown to you.",
+          "Sign-in cookies for our staff on the admin side of the site. Customers do not need to sign in.",
+          "Paystack, our payment provider, may set its own cookies on its secure payment page. They are covered by Paystack's own policy.",
+        ],
+      },
+      {
+        heading: "Analytics (only if you agree)",
+        paragraphs: [
+          "If we switch on Google Analytics, it sets cookies such as _ga and _ga_ followed by an ID, which last up to two years. They help us count visitors and see which pages are used, so we can improve the shop. They run only after you accept analytics.",
+        ],
+      },
+      {
+        heading: "Marketing (only if you agree)",
+        paragraphs: [
+          "If we switch on the Meta (Facebook and Instagram) Pixel, it sets a cookie called _fbp, which lasts up to about three months. It helps us measure our ads and show you ones that are relevant. It runs only after you accept marketing cookies.",
+        ],
+      },
+      {
+        heading: "Your choices",
+        paragraphs: [
+          "When optional tools are in use, you will see a banner where you can accept all, keep essential only, or choose. You can change your choice at any time with the Cookie settings link at the bottom of every page. You can also delete cookies or block them in your browser settings, although the cart and checkout may then not work properly.",
         ],
       },
       contactSection,

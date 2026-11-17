@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -6,6 +7,11 @@ import { markOrderPaid } from "@/lib/payments";
 import { waLink } from "@/lib/whatsapp";
 import { ClearCartOnPaid } from "@/components/clear-cart-on-paid";
 import { RetryPaymentButton } from "@/components/retry-payment-button";
+
+export const metadata: Metadata = {
+  title: "Order confirmation",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

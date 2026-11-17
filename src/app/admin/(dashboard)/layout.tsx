@@ -8,6 +8,7 @@ import { CustomerScreenHost } from "@/components/admin/customer-screen-host";
 // Makes the admin installable as an app ("Add to Home Screen" / "Install"),
 // opening straight on the walk-in sale screen.
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   manifest: "/pos.webmanifest",
   appleWebApp: { capable: true, title: "BN POS", statusBarStyle: "default" },
   icons: { apple: "/icons/apple-touch-icon.png" },

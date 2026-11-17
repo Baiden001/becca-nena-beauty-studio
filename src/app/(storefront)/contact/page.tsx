@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import { waLink } from "@/lib/whatsapp";
+
+export const metadata: Metadata = {
+  title: "Contact us",
+  description:
+    "Contact Becca Nena Beauty Studio on WhatsApp or visit us in East Legon, Accra. Questions about a product or an order are welcome.",
+  alternates: { canonical: "/contact" },
+};
+
 
 export default function ContactPage() {
   return (

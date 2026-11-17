@@ -3,6 +3,7 @@ import { waLink } from "@/lib/whatsapp";
 import { HAIR_SITE } from "@/lib/links";
 import { NewsletterSignup } from "@/components/newsletter-signup";
 import { POLICY_LINKS } from "@/lib/policies";
+import { CookieSettingsItem } from "@/components/cookie-consent";
 
 export function SiteFooter() {
   return (
@@ -81,6 +82,7 @@ export function SiteFooter() {
               </Link>
             </li>
           ))}
+          <CookieSettingsItem />
         </ul>
         <p>© {new Date().getFullYear()} Becca Nena Beauty Studio. All rights reserved.</p>
         <p className="mt-1">
