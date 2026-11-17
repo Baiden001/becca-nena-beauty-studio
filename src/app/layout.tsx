@@ -2,8 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { SITE, isLive, siteUrl } from "@/lib/site";
 import { Fraunces, Work_Sans } from "next/font/google";
 import "./globals.css";
-import "./animations.css";
-
 
 // Editorial display face — warm, high-contrast, a deliberate step away from
 // the Playfair-Display-on-every-beauty-site default.
