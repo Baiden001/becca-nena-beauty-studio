@@ -53,7 +53,7 @@ export function CustomerScreen({ state }: { state: DisplayState }) {
   );
 }
 
-/** The separate-window version, used when there is no second monitor to fill. */
+/** Customer-facing page rendered in its own browser window. */
 export function CustomerDisplay() {
   const state = useDisplayState();
   const [fullscreen, setFullscreen] = useState(false);
