@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useDisplayState, type DisplayLine, type DisplayState } from "@/lib/customer-display";
 import { formatCedis } from "@/lib/pricing";
+import { HeroImage } from "@/components/hero-image";
+import { DriftTrack } from "@/components/hero-drift-track";
+import { HERO_ITEMS, type HeroItem } from "@/lib/hero-items";
 
 const SLIDE_MS = 8000; // how long each idle picture stays
 
@@ -82,41 +85,78 @@ export function CustomerDisplay() {
   );
 }
 
+function WelcomeProductCard({
+  item,
+  priority = false,
+  className = "",
+}: {
+  item: HeroItem;
+  priority?: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <HeroImage
+        src={item.image}
+        alt={item.alt}
+        priority={priority}
+        sizes="(min-width: 768px) 22vw, 240px"
+      />
+    </div>
+  );
+}
+
+/** Welcome view reuses the exact text, images and motion from the website hero. */
 function IdleView() {
-  const images = useIdleImages();
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (images.length < 2) return;
-    const t = setInterval(() => setIndex((i) => (i + 1) % images.length), SLIDE_MS);
-    return () => clearInterval(t);
-  }, [images.length]);
-
-  if (images.length === 0) {
-    // No idle pictures added yet: a calm welcome card with the logo.
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-6 px-8 text-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/images/logo.png" alt="Becca Nena Beauty Studio" className="h-[40dvh] w-auto object-contain" />
-        <p className="font-serif text-3xl text-brown">Welcome</p>
-      </div>
-    );
-  }
+  const columnA = HERO_ITEMS.filter((_, i) => i % 2 === 0);
+  const columnB = HERO_ITEMS.filter((_, i) => i % 2 === 1);
 
   return (
-    <div className="absolute inset-0">
-      {images.map((src, i) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          key={src}
-          src={src}
-          alt=""
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-1000 ${
-            i === index ? "opacity-100" : "opacity-0"
-          }`}
-        />
-      ))}
-    </div>
+    <section className="h-full min-h-0 overflow-hidden bg-cream">
+      <div className="mx-auto grid h-full max-w-6xl grid-cols-1 content-center gap-8 px-6 py-8 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-x-14 md:py-6">
+        <div className="fade-in self-center text-center md:text-left">
+          <h1 className="font-serif text-4xl leading-[1.1] text-brown sm:text-5xl lg:text-6xl">
+            Beauty, <span className="italic text-rose">curated.</span> Not just sold.
+          </h1>
+          <p className="mx-auto mt-5 max-w-md text-taupe md:mx-0">
+            A premium edit of skincare and body care, picked the way we&apos;d
+            recommend it to a friend. Pay securely online with Mobile Money or
+            card, and our team confirms delivery with you directly.
+          </p>
+        </div>
+
+        <div className="min-w-0 self-center md:h-[min(720px,calc(100dvh_-_3rem))]">
+          <DriftTrack
+            axis="x"
+            speed={36}
+            dragWith="all"
+            className="-mx-6 [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)] md:hidden"
+          >
+            {HERO_ITEMS.map((item, i) => (
+              <WelcomeProductCard
+                key={item.image}
+                item={item}
+                priority={i < 2}
+                className="w-[240px] shrink-0 pr-3"
+              />
+            ))}
+          </DriftTrack>
+
+          <div className="hidden h-full grid-cols-2 gap-4 overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_10%,black_90%,transparent)] md:grid">
+            <DriftTrack axis="y" direction={1} speed={30} dragWith="mouse" className="h-full">
+              {columnA.map((item) => (
+                <WelcomeProductCard key={item.image} item={item} className="pb-4" />
+              ))}
+            </DriftTrack>
+            <DriftTrack axis="y" direction={-1} speed={30} dragWith="mouse" className="h-full">
+              {columnB.map((item) => (
+                <WelcomeProductCard key={item.image} item={item} className="pb-4" />
+              ))}
+            </DriftTrack>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
