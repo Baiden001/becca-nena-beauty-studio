@@ -1,13 +1,6 @@
-// The customer-facing screen. The till writes what is happening (items scanned,
-// sale finished, nothing going on) into the browser's local storage and the
-// customer screen reacts to it instantly. It all happens inside this computer,
-// so nothing goes through the internet.
-//
-// The customer screen can be shown two ways:
-//  1. As a full-screen panel placed on the second monitor by the till page
-//     itself (needs no clicking on the customer screen: one click on the till
-//     starts it).
-//  2. As a separate window, used when no second monitor is found.
+// The till writes the current sale to localStorage. A separate customer
+// display window listens for storage changes and updates independently.
+// The cashier page is never replaced or put into customer-display fullscreen.
 
 import { useEffect, useState } from "react";
 
@@ -36,7 +29,6 @@ export type DisplayState =
 
 export const DISPLAY_KEY = "bn-customer-display";
 const CHANGE_EVENT = "bn-display-change";
-const START_EVENT = "bn-start-customer-screen";
 
 const SLIDE_STALE_MS = 5 * 60 * 1000; // a sale left untouched this long goes back to idle
 const THANKS_MS = 9000; // how long "thank you" stays
@@ -62,12 +54,28 @@ export function readDisplay(): DisplayState | null {
 }
 
 /**
- * Opens the customer screen. If the computer has a second monitor and the
- * browser allows it, the window opens straight on that monitor. Otherwise it
- * opens as an ordinary window you can drag across.
+ * Opens a separate customer-facing browser window.
+ *
+ * window.open runs before any asynchronous permission request so the browser
+ * treats it as a user-initiated popup. If the Multi-Screen Window Placement
+ * API is available, move the new window to the other display afterwards.
+ * If positioning is blocked or unsupported, the window remains available for
+ * the cashier to drag to the customer monitor.
  */
 export async function openCustomerDisplay() {
-  let features = "popup=yes,width=900,height=700";
+  const displayWindow = window.open(
+    DISPLAY_PATH,
+    "bn-customer-display",
+    "popup=yes,width=1100,height=760"
+  );
+
+  if (!displayWindow) {
+    window.alert(
+      "The customer display window was blocked. Allow pop-ups for this site, then click Customer screen again."
+    );
+    return;
+  }
+
   try {
     const w = window as unknown as {
       getScreenDetails?: () => Promise<{
@@ -80,24 +88,28 @@ export async function openCustomerDisplay() {
         }[];
       }>;
     };
-    if (typeof w.getScreenDetails === "function") {
-      const details = await w.getScreenDetails();
-      const other = details.screens.find((s) => !s.isPrimary);
-      if (other) {
-        features = `popup=yes,left=${other.availLeft},top=${other.availTop},width=${other.availWidth},height=${other.availHeight}`;
-      }
+
+    if (typeof w.getScreenDetails !== "function") return;
+
+    const details = await w.getScreenDetails();
+    const other = details.screens.find((screen) => !screen.isPrimary);
+    if (!other || displayWindow.closed) return;
+
+    try {
+      displayWindow.moveTo(other.availLeft, other.availTop);
+      displayWindow.resizeTo(other.availWidth, other.availHeight);
+    } catch {
+      // Manual dragging remains available.
     }
   } catch {
-    // permission refused or unsupported: use the plain window
+    // Permission denied or unsupported. The separate popup still works.
   }
-  window.open(DISPLAY_PATH, "bn-customer-display", features);
 }
 
-/** Asks the customer screen to start (or stop). Must be called from a click. */
+/** Opens the separate customer window from the cashier's button click. */
 export function startCustomerScreen() {
-  window.dispatchEvent(new Event(START_EVENT));
+  void openCustomerDisplay();
 }
-export const START_CUSTOMER_SCREEN_EVENT = START_EVENT;
 
 /** The latest state for whoever is drawing the customer screen. */
 export function useDisplayState(): DisplayState {
