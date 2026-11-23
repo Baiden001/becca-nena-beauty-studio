@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import { requireOwnerAdmin } from "@/lib/supabase/require-staff";
+import { requireCatalogStaff } from "@/lib/supabase/require-staff";
 import { createClient } from "@/lib/supabase/server";
 import { ProductForm } from "@/components/admin/product-form";
 import { StockAdjustForm } from "@/components/admin/stock-adjust-form";
 
 export default async function EditProductPage({ params }: { params: { id: string } }) {
-  await requireOwnerAdmin();
+  const staff = await requireCatalogStaff();
   const supabase = createClient();
 
   const [{ data: product }, { data: categories }, { data: transactions }] = await Promise.all([
@@ -38,6 +38,7 @@ export default async function EditProductPage({ params }: { params: { id: string
         </p>
       </div>
 
+      {staff.role === "owner_admin" && (
       <div className="mt-6 rounded-md border border-rose/20 bg-white p-5">
         <p className="text-sm font-medium text-brown">Adjust stock</p>
         <div className="mt-3">
@@ -61,6 +62,8 @@ export default async function EditProductPage({ params }: { params: { id: string
           </div>
         )}
       </div>
+
+      )}
 
       <div className="mt-6">
         <ProductForm

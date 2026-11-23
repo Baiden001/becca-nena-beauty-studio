@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { requireOwnerAdmin } from "@/lib/supabase/require-staff";
+import { requireCatalogStaff } from "@/lib/supabase/require-staff";
 import { createClient } from "@/lib/supabase/server";
 import { formatCedis } from "@/lib/pricing";
 
 export default async function AdminProductsPage() {
-  await requireOwnerAdmin();
+  await requireCatalogStaff();
   const supabase = createClient();
   const { data: productsRaw } = await supabase
     .from("products")

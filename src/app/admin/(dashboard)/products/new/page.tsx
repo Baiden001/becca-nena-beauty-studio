@@ -1,9 +1,9 @@
-import { requireOwnerAdmin } from "@/lib/supabase/require-staff";
+import { requireCatalogStaff } from "@/lib/supabase/require-staff";
 import { createClient } from "@/lib/supabase/server";
 import { ProductForm } from "@/components/admin/product-form";
 
 export default async function NewProductPage() {
-  await requireOwnerAdmin();
+  await requireCatalogStaff();
   const supabase = createClient();
   const { data: categories } = await supabase
     .from("categories")

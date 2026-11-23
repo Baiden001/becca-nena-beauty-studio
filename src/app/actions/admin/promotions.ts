@@ -30,6 +30,7 @@ export async function createPromotion(
 ): Promise<{ ok: boolean; error?: string }> {
   const staff = await getCurrentStaff();
   if (!staff) return { ok: false, error: "Not signed in." };
+  if (staff.role !== "owner_admin" && staff.role !== "sales_staff") return { ok: false, error: "Not authorized." };
 
   const error = validate(input);
   if (error) return { ok: false, error };
@@ -58,6 +59,7 @@ export async function updatePromotion(
 ): Promise<{ ok: boolean; error?: string }> {
   const staff = await getCurrentStaff();
   if (!staff) return { ok: false, error: "Not signed in." };
+  if (staff.role !== "owner_admin" && staff.role !== "sales_staff") return { ok: false, error: "Not authorized." };
 
   const error = validate(input);
   if (error) return { ok: false, error };
@@ -89,6 +91,7 @@ export async function setPromotionStatus(
 ): Promise<{ ok: boolean; error?: string }> {
   const staff = await getCurrentStaff();
   if (!staff) return { ok: false, error: "Not signed in." };
+  if (staff.role !== "owner_admin" && staff.role !== "sales_staff") return { ok: false, error: "Not authorized." };
 
   const supabase = createClient();
   const { error } = await supabase.from("promotions").update({ status }).eq("id", id);

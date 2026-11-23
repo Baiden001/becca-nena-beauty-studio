@@ -47,3 +47,11 @@ export async function requireOwnerAdmin(): Promise<UserRow> {
   if (staff.role !== "owner_admin") redirect("/admin");
   return staff;
 }
+
+/** Access guard for catalog and promotion work assigned to owners and sales staff. */
+export async function requireCatalogStaff(): Promise<UserRow> {
+  const staff = await getCurrentStaff();
+  if (!staff) redirect("/admin/login");
+  if (staff.role !== "owner_admin" && staff.role !== "sales_staff") redirect("/admin");
+  return staff;
+}

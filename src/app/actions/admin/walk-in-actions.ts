@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentStaff } from "@/lib/supabase/require-staff";
 import { currentPrice } from "@/lib/pricing";
 import type { PaymentMethod, ProductRow } from "@/types/database";
+import { notifyStaffOfWalkInSale } from "@/lib/payments";
 
 export interface SaleProduct {
   id: string;
@@ -243,6 +244,12 @@ export async function recordWalkInSale(input: WalkInSaleInput): Promise<WalkInSa
     revalidatePath("/admin/products");
     revalidatePath("/admin");
     revalidatePath("/shop");
+
+    // The sale and stock transaction is already committed. Notification failure
+    // must not cause the cashier to retry and create a duplicate sale.
+    await notifyStaffOfWalkInSale(data[0].out_order_id).catch((e) =>
+      console.error("[walk-in-sale] staff email notification failed:", e)
+    );
 
     return {
       ok: true,

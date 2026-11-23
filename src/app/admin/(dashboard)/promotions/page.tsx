@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { requireOwnerAdmin } from "@/lib/supabase/require-staff";
+import { requireCatalogStaff } from "@/lib/supabase/require-staff";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminPromotionsPage() {
-  await requireOwnerAdmin();
+  await requireCatalogStaff();
   const supabase = createClient();
   const { data: promotions } = await supabase
     .from("promotions")

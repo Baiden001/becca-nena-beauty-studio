@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
-import { requireOwnerAdmin } from "@/lib/supabase/require-staff";
+import { requireCatalogStaff } from "@/lib/supabase/require-staff";
 import { createClient } from "@/lib/supabase/server";
 import { PromotionForm } from "@/components/admin/promotion-form";
 
 export default async function EditPromotionPage({ params }: { params: { id: string } }) {
-  await requireOwnerAdmin();
+  await requireCatalogStaff();
   const supabase = createClient();
   const { data: promotion } = await supabase
     .from("promotions")

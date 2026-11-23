@@ -1,8 +1,8 @@
-import { requireOwnerAdmin } from "@/lib/supabase/require-staff";
+import { requireCatalogStaff } from "@/lib/supabase/require-staff";
 import { PromotionForm } from "@/components/admin/promotion-form";
 
 export default async function NewPromotionPage() {
-  await requireOwnerAdmin();
+  await requireCatalogStaff();
 
   return (
     <div>

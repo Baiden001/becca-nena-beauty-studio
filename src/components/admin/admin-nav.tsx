@@ -25,6 +25,7 @@ interface NavLink {
   icon: React.ComponentType<LucideProps>;
   exact?: boolean;
   ownerOnly?: boolean;
+  catalogStaff?: boolean;
 }
 
 interface NavGroup {
@@ -45,10 +46,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Catalog",
     links: [
-      { href: "/admin/products", label: "Products", icon: Package, ownerOnly: true },
+      { href: "/admin/products", label: "Products", icon: Package, catalogStaff: true },
       { href: "/admin/categories", label: "Categories", icon: Tag, ownerOnly: true },
       { href: "/admin/collections", label: "Collections", icon: Layers, ownerOnly: true },
-      { href: "/admin/promotions", label: "Promotions", icon: Megaphone, ownerOnly: true },
+      { href: "/admin/promotions", label: "Promotions", icon: Megaphone, catalogStaff: true },
     ],
   },
   {
@@ -76,7 +77,9 @@ export function AdminNav({ staffName, role }: { staffName: string; role: string 
 
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-5">
         {NAV_GROUPS.map((group) => {
-          const visibleLinks = group.links.filter((l) => !l.ownerOnly || isOwner);
+          const visibleLinks = group.links.filter(
+            (l) => (!l.ownerOnly || isOwner) && (!l.catalogStaff || role === "owner_admin" || role === "sales_staff"),
+          );
           if (!visibleLinks.length) return null;
 
           return (
@@ -95,14 +98,14 @@ export function AdminNav({ staffName, role }: { staffName: string; role: string 
                       key={link.href}
                       href={link.href}
                       aria-current={active ? "page" : undefined}
-                      className={`group flex items-center gap-2.5 rounded-lg border-l-2 px-3 py-2 text-sm transition-colors ${
+                      className={`group flex items-center gap-3 rounded-lg border-l-2 px-3 py-2.5 text-[15px] transition-colors ${
                         active
                           ? "border-rose bg-rose/10 font-medium text-rose"
                           : "border-transparent text-brown/75 hover:border-rose/30 hover:bg-cream hover:text-brown"
                       }`}
                     >
                       <Icon
-                        size={17}
+                        size={19}
                         strokeWidth={2}
                         className={active ? "text-rose" : "text-taupe group-hover:text-brown"}
                       />

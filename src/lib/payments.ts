@@ -89,6 +89,61 @@ const cedis = (n: number) =>
  * separated by commas) the moment an online order is paid, with the customer's
  * contact details and a link straight to the order in the admin.
  */
+
+/** Sends the store's walk-in sale email after the database transaction commits.
+ * Email failure is handled by the caller and must never roll back a saved sale.
+ */
+export async function notifyStaffOfWalkInSale(orderId: string): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  const recipients = (process.env.ORDER_NOTIFICATION_EMAIL ?? "")
+    .split(/[,;\s]+/)
+    .map((e) => e.trim())
+    .filter(Boolean);
+  if (!apiKey || recipients.length === 0) throw new Error("RESEND_API_KEY or ORDER_NOTIFICATION_EMAIL is missing");
+
+  const supabase = createAdminClient();
+  const { data: order, error: orderError } = await supabase
+    .from("orders")
+    .select("order_number, estimated_total, payment_method, created_at, sold_by, customers(name, phone, whatsapp, email)")
+    .eq("id", orderId)
+    .single();
+  if (orderError || !order) throw new Error("Walk-in order not found for notification");
+
+  const [{ data: items }, { data: seller }] = await Promise.all([
+    supabase.from("order_items").select("product_name, quantity, subtotal").eq("order_id", orderId),
+    order.sold_by ? supabase.from("users").select("name, email").eq("id", order.sold_by).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+  const customer = order.customers as unknown as { name: string; phone: string | null; whatsapp: string | null; email: string | null } | null;
+  const method = ({ cash: "Cash", mobile_money: "Mobile Money", card: "Card", pos_terminal: "POS Terminal", bank_transfer: "Bank Transfer" } as Record<string, string>)[order.payment_method ?? ""] ?? "Not specified";
+  const total = cedis(Number(order.estimated_total));
+  const itemLines = (items ?? []).map((i) => `${i.quantity} x ${i.product_name} (${cedis(Number(i.subtotal))})`);
+  const text = [
+    `NEW WALK-IN SALE #${order.order_number}: ${total}`,
+    `Date: ${new Date(order.created_at).toLocaleString("en-GH")}`,
+    `Sold by: ${seller?.name ?? "Staff"}${seller?.email ? ` (${seller.email})` : ""}`,
+    `Customer: ${customer?.name ?? "Walk-in customer"}`,
+    `Phone: ${customer?.phone ?? ""}`,
+    `WhatsApp: ${customer?.whatsapp ?? ""}`,
+    `Payment: ${method}`,
+    "", "Items:", ...itemLines, "", `Total: ${total}`,
+  ].join("\n");
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:auto;color:#2b2320"><p style="font-size:12px;letter-spacing:.12em;color:#8a7a72">NEW WALK-IN SALE</p><h2>#${escapeHtml(order.order_number)} · ${escapeHtml(total)}</h2><p><b>Sold by:</b> ${escapeHtml(seller?.name ?? "Staff")}${seller?.email ? ` (${escapeHtml(seller.email)})` : ""}</p><p><b>Customer:</b> ${escapeHtml(customer?.name ?? "Walk-in customer")}</p><p><b>Phone:</b> ${escapeHtml(customer?.phone ?? "")}</p><p><b>Payment:</b> ${escapeHtml(method)}</p><p><b>Date:</b> ${escapeHtml(new Date(order.created_at).toLocaleString("en-GH"))}</p><h3>Items</h3><ul>${itemLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul><h3>Total: ${escapeHtml(total)}</h3></div>`;
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL || "Becca Nena <onboarding@resend.dev>",
+      to: recipients,
+      subject: `New walk-in sale #${order.order_number}: ${total}`,
+      text, html,
+    }),
+  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Resend responded ${response.status}: ${body}`);
+  }
+}
+
 async function notifyStaffOfPaidOrder(orderId: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   const recipients = (process.env.ORDER_NOTIFICATION_EMAIL ?? "")

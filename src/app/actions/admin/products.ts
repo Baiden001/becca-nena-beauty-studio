@@ -44,6 +44,7 @@ export async function createProduct(
 ): Promise<{ ok: boolean; error?: string; id?: string }> {
   const staff = await getCurrentStaff();
   if (!staff) return { ok: false, error: "Not signed in." };
+  if (staff.role !== "owner_admin" && staff.role !== "sales_staff") return { ok: false, error: "Not authorized." };
 
   const error = validate(input);
   if (error) return { ok: false, error };
@@ -88,6 +89,7 @@ export async function updateProduct(
 ): Promise<{ ok: boolean; error?: string }> {
   const staff = await getCurrentStaff();
   if (!staff) return { ok: false, error: "Not signed in." };
+  if (staff.role !== "owner_admin" && staff.role !== "sales_staff") return { ok: false, error: "Not authorized." };
 
   const error = validate(input);
   if (error) return { ok: false, error };
@@ -168,6 +170,7 @@ async function syncImagesAndVariants(
 export async function deleteProduct(productId: string): Promise<{ ok: boolean; error?: string }> {
   const staff = await getCurrentStaff();
   if (!staff) return { ok: false, error: "Not signed in." };
+  if (staff.role !== "owner_admin") return { ok: false, error: "Only an owner can perform this action." };
 
   const supabase = createClient();
   const { error } = await supabase.from("products").delete().eq("id", productId);
@@ -184,6 +187,7 @@ export async function adjustStock(
 ): Promise<{ ok: boolean; error?: string }> {
   const staff = await getCurrentStaff();
   if (!staff) return { ok: false, error: "Not signed in." };
+  if (staff.role !== "owner_admin") return { ok: false, error: "Only an owner can perform this action." };
   if (!reason.trim()) return { ok: false, error: "A reason is required for stock changes." };
   if (quantityChange === 0) return { ok: false, error: "Enter a non-zero quantity." };
 
