@@ -38,7 +38,7 @@ export function HeroDrift() {
   const columnB = HERO_ITEMS.filter((_, i) => i % 2 === 1);
 
   return (
-    <section id="hero" className="overflow-x-clip bg-cream pb-12 pt-24 md:pb-16 md:pt-28">
+    <section id="hero" className="overflow-x-clip bg-cream pb-12 pt-28 md:pb-16 md:pt-32">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-8 px-6 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:gap-x-14 md:gap-y-0">
         {/* Text */}
         <div className="fade-in text-center md:col-start-1 md:row-start-1 md:self-end md:pb-4 md:text-left">
