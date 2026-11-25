@@ -43,8 +43,24 @@ export interface SaleRow {
   total: number;
 }
 
+export interface PaymentGroup {
+  key: "cash" | "momo" | "card" | "bank" | "online";
+  label: string;
+  hint: string;
+  total: number;
+  count: number;
+}
+
+export interface DayTotal {
+  date: string;
+  total: number;
+  count: number;
+}
+
 export interface EndOfDay {
   date: string;
+  /** Last day of the period (same as date for a single day). */
+  endDate: string;
   salesCount: number;
   itemsSold: number;
   grossSales: number;
@@ -58,6 +74,9 @@ export interface EndOfDay {
   cashiers: CashierTotals[];
   topProducts: { name: string; quantity: number; total: number }[];
   sales: SaleRow[];
+  /** The money that came in, grouped the way the shop thinks about it. */
+  groups: PaymentGroup[];
+  days: DayTotal[];
 }
 
 /** "YYYY-MM-DD" for today in Ghana. */
@@ -75,43 +94,82 @@ function chunks<T>(list: T[], size: number): T[][] {
   return out;
 }
 
-export async function loadEndOfDay(date: string): Promise<EndOfDay> {
-  const start = new Date(`${date}T00:00:00Z`);
-  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+/**
+ * Supabase hands back at most 1,000 rows per request, so busy periods are
+ * read page by page until everything is in.
+ */
+async function fetchAll<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+): Promise<T[]> {
+  const out: T[] = [];
+  const size = 1000;
+  for (let from = 0; from < 100_000; from += size) {
+    const { data, error } = await page(from, from + size - 1);
+    if (error) throw new Error(error.message);
+    out.push(...(data ?? []));
+    if (!data || data.length < size) break;
+  }
+  return out;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export function addDays(date: string, n: number): string {
+  return new Date(Date.parse(`${date}T00:00:00Z`) + n * DAY_MS).toISOString().slice(0, 10);
+}
+
+export function loadEndOfDay(date: string): Promise<EndOfDay> {
+  return loadSalesReport(date, date);
+}
+
+/** Sales, refunds and payment totals for every day from `from` to `to`, inclusive. */
+export async function loadSalesReport(from: string, to: string): Promise<EndOfDay> {
+  const date = from;
+  const start = new Date(`${from}T00:00:00Z`);
+  const end = new Date(Date.parse(`${to}T00:00:00Z`) + DAY_MS);
   const supabase = createAdminClient();
 
-  const [ordersRes, returnsRes, usersRes] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("id, order_number, channel, payment_method, estimated_total, discount_total, sold_by, paid_at, status")
-      .eq("payment_status", "paid")
-      .neq("status", "cancelled")
-      .gte("paid_at", start.toISOString())
-      .lt("paid_at", end.toISOString())
-      .order("paid_at", { ascending: true })
-      .limit(5000),
-    supabase
-      .from("returns")
-      .select("id, refund_method, refund_total, processed_by")
-      .gte("created_at", start.toISOString())
-      .lt("created_at", end.toISOString())
-      .limit(5000),
-    supabase.from("users").select("id, name"),
-  ]);
-
-  if (ordersRes.error) throw new Error(`Could not load sales: ${ordersRes.error.message}`);
-
-  const orders = ordersRes.data ?? [];
-  const returns = returnsRes.data ?? [];
+  let orders, returns;
+  try {
+    [orders, returns] = await Promise.all([
+      fetchAll((a, b) =>
+        supabase
+          .from("orders")
+          .select("id, order_number, channel, payment_method, estimated_total, discount_total, sold_by, paid_at, status")
+          .eq("payment_status", "paid")
+          .neq("status", "cancelled")
+          .gte("paid_at", start.toISOString())
+          .lt("paid_at", end.toISOString())
+          .order("paid_at", { ascending: true })
+          .range(a, b)
+      ),
+      fetchAll((a, b) =>
+        supabase
+          .from("returns")
+          .select("id, refund_method, refund_total, processed_by")
+          .gte("created_at", start.toISOString())
+          .lt("created_at", end.toISOString())
+          .order("created_at", { ascending: true })
+          .range(a, b)
+      ),
+    ]);
+  } catch (e) {
+    throw new Error(`Could not load sales: ${e instanceof Error ? e.message : e}`);
+  }
+  const usersRes = await supabase.from("users").select("id, name");
   const names = new Map((usersRes.data ?? []).map((u) => [u.id, u.name]));
 
   const itemResults = await Promise.all(
     chunks(
       orders.map((o) => o.id),
       150
-    ).map((ids) => supabase.from("order_items").select("product_name, quantity, subtotal").in("order_id", ids))
+    ).map((ids) =>
+      fetchAll((a, b) =>
+        supabase.from("order_items").select("product_name, quantity, subtotal").in("order_id", ids).range(a, b)
+      )
+    )
   );
-  const items = itemResults.flatMap((r) => r.data ?? []);
+  const items = itemResults.flat();
 
   // Payment methods: walk-in sales by how they were paid, online orders together.
   const methods = new Map<MethodKey, MethodTotals>();
@@ -193,8 +251,38 @@ export async function loadEndOfDay(date: string): Promise<EndOfDay> {
 
   const cash = methods.get("cash")!;
 
+  // Money by where it lands: the drawer, the MoMo wallet, the card machine...
+  const m = (k: MethodKey) => methods.get(k) ?? { sales: 0, salesCount: 0 };
+  const groups: PaymentGroup[] = [
+    { key: "cash", label: "Cash", hint: "in the drawer", total: m("cash").sales, count: m("cash").salesCount },
+    { key: "momo", label: "MoMo", hint: "Mobile Money at the till", total: m("mobile_money").sales, count: m("mobile_money").salesCount },
+    {
+      key: "card",
+      label: "Card machine",
+      hint: "card + POS terminal",
+      total: m("card").sales + m("pos_terminal").sales,
+      count: m("card").salesCount + m("pos_terminal").salesCount,
+    },
+    { key: "bank", label: "Bank transfer", hint: "paid to the bank", total: m("bank_transfer").sales, count: m("bank_transfer").salesCount },
+    { key: "online", label: "Online", hint: "website, via Paystack", total: m("online").sales, count: m("online").salesCount },
+  ];
+
+  // One entry per day in the period, including days with no sales.
+  const dayMap = new Map<string, DayTotal>();
+  for (let d = from; d <= to; d = addDays(d, 1)) dayMap.set(d, { date: d, total: 0, count: 0 });
+  for (const sale of sales) {
+    const day = dayMap.get(sale.paidAt.slice(0, 10));
+    if (day) {
+      day.total += sale.total;
+      day.count += 1;
+    }
+  }
+
   return {
     date,
+    endDate: to,
+    groups,
+    days: [...dayMap.values()],
     salesCount: orders.length,
     itemsSold,
     grossSales: gross,
@@ -210,4 +298,41 @@ export async function loadEndOfDay(date: string): Promise<EndOfDay> {
     topProducts: [...products.values()].sort((a, b) => b.quantity - a.quantity).slice(0, 10),
     sales: sales.reverse(),
   };
+}
+
+export interface StockSummary {
+  products: number;
+  units: number;
+  /** What the stock on the shelves would sell for at today's normal prices. */
+  retailValue: number;
+  lowCount: number;
+  outCount: number;
+  low: { id: string; name: string; stock: number }[];
+}
+
+/** Stock remaining right now (not tied to a date range). */
+export async function loadStockSummary(): Promise<StockSummary> {
+  const supabase = createAdminClient();
+  const rows = await fetchAll((a, b) =>
+    supabase
+      .from("products")
+      .select("id, name, stock_quantity, low_stock_threshold, regular_price, status")
+      .neq("status", "draft")
+      .order("stock_quantity", { ascending: true })
+      .range(a, b)
+  );
+  let units = 0;
+  let retailValue = 0;
+  let lowCount = 0;
+  let outCount = 0;
+  const low: StockSummary["low"] = [];
+  for (const p of rows) {
+    const stock = Math.max(0, p.stock_quantity);
+    units += stock;
+    retailValue += stock * (Number(p.regular_price) || 0);
+    if (stock === 0) outCount += 1;
+    else if (stock <= p.low_stock_threshold) lowCount += 1;
+    if (stock <= p.low_stock_threshold && low.length < 8) low.push({ id: p.id, name: p.name, stock });
+  }
+  return { products: rows.length, units, retailValue, lowCount, outCount, low };
 }

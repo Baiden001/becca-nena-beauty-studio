@@ -7,6 +7,7 @@ import {
   Bell,
   BellOff,
   Calculator,
+  BarChart3,
   ChevronDown,
   LayoutDashboard,
   LogOut,
@@ -32,6 +33,7 @@ const MENU = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/returns", label: "Returns", icon: Undo2 },
+  { href: "/admin/reports", label: "Sales report", icon: BarChart3, ownerOnly: true },
   { href: "/admin/end-of-day", label: "End of day", icon: Calculator },
   { href: "/admin/products", label: "Products & stock", icon: Package },
   { href: "/admin/customers", label: "Customers", icon: Users },
@@ -141,7 +143,7 @@ export function PosTopBar({
             role="menu"
             className="absolute left-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-rose/15 bg-white py-1.5 text-brown shadow-2xl"
           >
-            {MENU.map(({ href, label, icon: Icon }) => (
+            {MENU.filter((m) => !("ownerOnly" in m) || role === "owner_admin").map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}

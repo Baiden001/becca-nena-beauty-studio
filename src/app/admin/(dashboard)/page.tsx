@@ -1,9 +1,17 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatCedis } from "@/lib/pricing";
+import { getCurrentStaff } from "@/lib/supabase/require-staff";
+import { loadSalesReport, todayInGhana } from "@/lib/end-of-day";
 
 export default async function AdminDashboardPage() {
   const supabase = createClient();
+  const staff = await getCurrentStaff();
+  // Owners see today's takings at the top; sales staff don't.
+  const today =
+    staff?.role === "owner_admin"
+      ? await loadSalesReport(todayInGhana(), todayInGhana()).catch(() => null)
+      : null;
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
@@ -65,6 +73,31 @@ export default async function AdminDashboardPage() {
   return (
     <div>
       <h1 className="font-serif text-2xl text-brown">Dashboard</h1>
+
+      {today && (
+        <Link
+          href="/admin/reports"
+          className="mt-6 grid gap-4 rounded-xl bg-brown p-5 text-cream transition-opacity hover:opacity-95 md:grid-cols-[auto_1fr] md:items-center md:gap-8"
+        >
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-cream/70">Today&apos;s sales</p>
+            <p className="mt-1 font-serif text-4xl tabular-nums">{formatCedis(today.grossSales)}</p>
+            <p className="mt-1 text-sm text-cream/70">
+              {today.salesCount} sale{today.salesCount === 1 ? "" : "s"} · see full report →
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {today.groups
+              .filter((g) => g.key !== "bank" || g.total > 0)
+              .map((g) => (
+                <div key={g.key} className="rounded-lg bg-white/10 px-3 py-2.5">
+                  <p className="text-xs text-cream/70">{g.label}</p>
+                  <p className="mt-0.5 text-lg font-medium tabular-nums">{formatCedis(g.total)}</p>
+                </div>
+              ))}
+          </div>
+        </Link>
+      )}
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {kpis.map((kpi) => (
