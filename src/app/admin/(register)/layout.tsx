@@ -17,7 +17,9 @@ export default async function RegisterLayout({ children }: { children: React.Rea
   return (
     <>
       {children}
-      <NewOrderAlerts />
+      {/* The sound on/off control is the bell in the till's top bar instead,
+          so nothing floats over the total and Charge button. */}
+      <NewOrderAlerts floatingToggle={false} />
     </>
   );
 }

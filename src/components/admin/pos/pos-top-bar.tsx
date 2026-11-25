@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Archive,
+  Bell,
+  BellOff,
   Calculator,
   ChevronDown,
   LayoutDashboard,
@@ -24,6 +26,7 @@ import { InstallAppButton } from "@/components/admin/install-app-button";
 import { signOutStaff } from "@/app/actions/admin/auth";
 import { startCustomerScreen } from "@/lib/customer-display";
 import { desktop } from "@/lib/receipt";
+import { useOrderSound } from "@/components/admin/new-order-alerts";
 
 const MENU = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -86,6 +89,7 @@ export function PosTopBar({
   const [menuOpen, setMenuOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [soundOn, toggleSound] = useOrderSound();
   useEffect(() => setIsDesktop(Boolean(desktop())), []);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -203,6 +207,16 @@ export function PosTopBar({
       </div>
 
       <div className="flex items-center">
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-pressed={soundOn}
+          className={`${iconBtn} ${soundOn ? "" : "text-red-200"}`}
+          title={soundOn ? "Online order alerts: sound on (click to mute)" : "Online order alerts: muted (click to turn on)"}
+          aria-label={soundOn ? "Mute online order alerts" : "Turn on online order alerts"}
+        >
+          {soundOn ? <Bell size={18} aria-hidden /> : <BellOff size={18} aria-hidden />}
+        </button>
         <button type="button" onClick={onRefresh} className={iconBtn} title="Reload products and stock" aria-label="Reload products and stock">
           <RefreshCw size={18} className={refreshing ? "animate-spin" : ""} aria-hidden />
         </button>

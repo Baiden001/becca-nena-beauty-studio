@@ -18,25 +18,69 @@ const SOUND_KEY = "bn-order-sound";
  * admin layout, so it works on every admin page, including the walk-in screen.
  * Orders that arrived while the page was closed are announced when it opens.
  */
-export function NewOrderAlerts() {
-  const [pending, setPending] = useState<NewOrderInfo[]>([]);
+const SOUND_EVENT = "bn-order-sound-change";
+
+/**
+ * The "order alerts on / muted" choice, shared by every control that shows it
+ * (the floating button on admin pages, the bell in the till's top bar).
+ */
+export function useOrderSound(): [boolean, () => void] {
   const [soundOn, setSoundOn] = useState(true);
+
+  useEffect(() => {
+    const read = () => {
+      try {
+        setSoundOn(window.localStorage.getItem(SOUND_KEY) !== "off");
+      } catch {
+        // storage unavailable: keep the default
+      }
+    };
+    read();
+    window.addEventListener(SOUND_EVENT, read);
+    return () => window.removeEventListener(SOUND_EVENT, read);
+  }, []);
+
+  const toggle = useCallback(() => {
+    let current = true;
+    try {
+      current = window.localStorage.getItem(SOUND_KEY) !== "off";
+    } catch {
+      // ignore
+    }
+    const next = !current;
+    try {
+      window.localStorage.setItem(SOUND_KEY, next ? "on" : "off");
+    } catch {
+      // ignore
+    }
+    setSoundOn(next);
+    window.dispatchEvent(new Event(SOUND_EVENT));
+    if (next) {
+      chime(); // lets them hear it, and unlocks sound in the browser
+      try {
+        if ("Notification" in window && Notification.permission === "default") {
+          void Notification.requestPermission();
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  return [soundOn, toggle];
+}
+
+export function NewOrderAlerts({ floatingToggle = true }: { floatingToggle?: boolean } = {}) {
+  const [pending, setPending] = useState<NewOrderInfo[]>([]);
+  const [soundOn, toggleSound] = useOrderSound();
   const soundRef = useRef(true);
+  soundRef.current = soundOn;
   const seen = useRef(new Set<string>());
   const cursor = useRef("");
   const originalTitle = useRef("");
 
-  // Remember the sound choice and unlock audio on the first touch of the page.
+  // Unlock audio on the first touch of the page.
   useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem(SOUND_KEY);
-      if (saved === "off") {
-        setSoundOn(false);
-        soundRef.current = false;
-      }
-    } catch {
-      // storage unavailable: keep the default
-    }
     const unlock = () => unlockAudio();
     window.addEventListener("pointerdown", unlock, { once: true });
     window.addEventListener("keydown", unlock, { once: true });
@@ -133,27 +177,6 @@ export function NewOrderAlerts() {
         : originalTitle.current;
   }, [pending.length]);
 
-  function toggleSound() {
-    const next = !soundOn;
-    setSoundOn(next);
-    soundRef.current = next;
-    try {
-      window.localStorage.setItem(SOUND_KEY, next ? "on" : "off");
-    } catch {
-      // ignore
-    }
-    if (next) {
-      chime(); // lets them hear it, and unlocks sound in the browser
-      try {
-        if ("Notification" in window && Notification.permission === "default") {
-          void Notification.requestPermission();
-        }
-      } catch {
-        // ignore
-      }
-    }
-  }
-
   const latest = pending[pending.length - 1];
 
   return (
@@ -194,15 +217,17 @@ export function NewOrderAlerts() {
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={toggleSound}
-        aria-pressed={soundOn}
-        className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 rounded-full border border-rose/30 bg-white px-4 py-2 text-xs text-brown shadow-md hover:border-rose"
-      >
-        {soundOn ? <Bell size={14} aria-hidden /> : <BellOff size={14} aria-hidden />}
-        Order alerts {soundOn ? "on" : "muted"}
-      </button>
+      {floatingToggle && (
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-pressed={soundOn}
+          className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 rounded-full border border-rose/30 bg-white px-4 py-2 text-xs text-brown shadow-md hover:border-rose"
+        >
+          {soundOn ? <Bell size={14} aria-hidden /> : <BellOff size={14} aria-hidden />}
+          Order alerts {soundOn ? "on" : "muted"}
+        </button>
+      )}
     </>
   );
 }
