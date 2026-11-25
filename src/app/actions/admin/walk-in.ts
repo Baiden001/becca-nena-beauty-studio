@@ -50,14 +50,22 @@ async function withImages(
   rows: ProductRow[]
 ): Promise<SaleProduct[]> {
   if (rows.length === 0) return [];
-  const { data } = await supabase
-    .from("product_images")
-    .select("product_id, image_url, display_order")
-    .in("product_id", rows.map((r) => r.id))
-    .order("display_order", { ascending: true });
+  // Batches keep the request URL short when the whole catalogue is loaded.
+  const ids = rows.map((r) => r.id);
+  const batches: string[][] = [];
+  for (let i = 0; i < ids.length; i += 150) batches.push(ids.slice(i, i + 150));
+  const results = await Promise.all(
+    batches.map((batch) =>
+      supabase
+        .from("product_images")
+        .select("product_id, image_url, display_order")
+        .in("product_id", batch)
+        .order("display_order", { ascending: true })
+    )
+  );
 
   const first = new Map<string, string>();
-  for (const img of data ?? []) {
+  for (const img of results.flatMap((r) => r.data ?? [])) {
     if (!first.has(img.product_id)) first.set(img.product_id, img.image_url);
   }
   return rows.map((r) => toSaleProduct(r, first.get(r.id) ?? null));
@@ -112,6 +120,56 @@ export async function lookupProducts(query: string): Promise<{
   }
 
   return { ok: true, results: await withImages(supabase, rows.slice(0, 8)) };
+}
+
+export interface RegisterCategory {
+  id: string;
+  name: string;
+}
+
+export interface RegisterProduct extends SaleProduct {
+  categoryId: string | null;
+  lowStockThreshold: number;
+}
+
+/**
+ * Everything the till's product grid needs, loaded once when the register
+ * opens: every product that isn't a draft, plus the categories for the tabs.
+ * Barcode scans still go through lookupProducts, which also finds drafts.
+ */
+export async function loadRegister(): Promise<{
+  ok: boolean;
+  products: RegisterProduct[];
+  categories: RegisterCategory[];
+  error?: string;
+}> {
+  const staff = await getCurrentStaff();
+  if (!staff) return { ok: false, products: [], categories: [], error: "Not signed in." };
+
+  const supabase = createAdminClient();
+  const [productsRes, categoriesRes] = await Promise.all([
+    supabase.from("products").select("*").neq("status", "draft").order("name").limit(1000),
+    supabase.from("categories").select("id, name").neq("status", "draft").order("display_order"),
+  ]);
+
+  if (productsRes.error) {
+    console.error("[register] products failed:", productsRes.error);
+    return { ok: false, products: [], categories: [], error: "Could not load products." };
+  }
+
+  const rows = productsRes.data ?? [];
+  const withPhotos = await withImages(supabase, rows);
+  const products = withPhotos.map((p, i) => ({
+    ...p,
+    categoryId: rows[i].category_id,
+    lowStockThreshold: rows[i].low_stock_threshold,
+  }));
+
+  // Only offer tabs for categories that actually have products.
+  const used = new Set(products.map((p) => p.categoryId));
+  const categories = (categoriesRes.data ?? []).filter((c) => used.has(c.id));
+
+  return { ok: true, products, categories };
 }
 
 export interface WalkInSaleInput {

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { signOutStaff } from "@/app/actions/admin/auth";
 import { Logo } from "@/components/logo";
+import { InstallAppButton } from "@/components/admin/install-app-button";
 
 interface NavLink {
   href: string;
@@ -38,7 +39,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Overview",
     links: [
       { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-      { href: "/admin/walk-in", label: "Walk-in sale", icon: Store },
+      { href: "/admin/walk-in", label: "Point of sale", icon: Store },
       { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
       { href: "/admin/returns", label: "Returns", icon: Undo2 },
     ],
@@ -118,6 +119,10 @@ export function AdminNav({ staffName, role }: { staffName: string; role: string 
           );
         })}
       </nav>
+
+      <div className="border-t border-rose/10 px-3 pt-3">
+        <InstallAppButton className="w-full justify-center border border-rose/30 px-3 py-2.5 text-brown hover:border-rose hover:bg-cream" />
+      </div>
 
       <div className="border-t border-rose/10 px-5 py-4">
         <div className="flex items-center justify-between gap-2">

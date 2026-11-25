@@ -46,6 +46,8 @@ export interface ReceiptData {
   }[];
   /** Only the method actually used, e.g. "Cash" or "Mobile Money". */
   paymentMethod: string;
+  /** Cash handed over by the customer, when it was more than the total. */
+  amountTendered?: number | null;
 }
 
 const ROOT_ID = "bn-receipt-root";
@@ -162,6 +164,12 @@ export function buildReceiptBody(r: ReceiptData, origin: string): string {
   <table class="kv">
     <tr><td>Payment method</td><td class="b">${esc(r.paymentMethod)}</td></tr>
     <tr><td>Amount paid</td><td>${esc(money(total))}</td></tr>
+    ${
+      r.amountTendered && r.amountTendered > total
+        ? `<tr><td>Cash received</td><td>${esc(money(r.amountTendered))}</td></tr>
+    <tr><td class="b">Change</td><td class="b">${esc(money(r.amountTendered - total))}</td></tr>`
+        : ""
+    }
   </table>
 
   <hr>

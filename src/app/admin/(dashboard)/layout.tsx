@@ -4,13 +4,9 @@ import { getCurrentStaff } from "@/lib/supabase/require-staff";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { NewOrderAlerts } from "@/components/admin/new-order-alerts";
 
-// Makes the admin installable as an app ("Add to Home Screen" / "Install"),
-// opening straight on the walk-in sale screen.
+// The app manifest and install support live in the parent admin layout.
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
-  manifest: "/pos.webmanifest",
-  appleWebApp: { capable: true, title: "BN POS", statusBarStyle: "default" },
-  icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

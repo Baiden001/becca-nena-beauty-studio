@@ -1,16 +1,44 @@
 {
+  "id": "/admin/walk-in",
   "name": "Becca Nena Point of Sale",
   "short_name": "BN POS",
   "description": "In-store sales, stock and orders for Becca Nena Beauty Studio.",
-  "start_url": "/admin/walk-in",
-  "scope": "/admin",
+  "start_url": "/admin/walk-in?source=app",
+  "scope": "/admin/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#F8F4EF",
-  "theme_color": "#F8F4EF",
+  "theme_color": "#302827",
+  "categories": ["business", "productivity"],
+  "launch_handler": { "client_mode": "focus-existing" },
   "icons": [
     { "src": "/icons/pos-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/pos-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icons/pos-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "New sale",
+      "short_name": "Sale",
+      "url": "/admin/walk-in",
+      "icons": [{ "src": "/icons/pos-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Orders",
+      "url": "/admin/orders",
+      "icons": [{ "src": "/icons/pos-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Products & stock",
+      "short_name": "Products",
+      "url": "/admin/products",
+      "icons": [{ "src": "/icons/pos-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard",
+      "url": "/admin",
+      "icons": [{ "src": "/icons/pos-192.png", "sizes": "192x192" }]
+    }
   ]
 }
