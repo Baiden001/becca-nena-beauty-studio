@@ -42,7 +42,7 @@ export function SiteHeader() {
             : `border-transparent ${light ? "text-cream" : "text-brown"}`
         }`}
       >
-        <div className="mx-auto grid h-[84px] max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-6">
+        <div className="mx-auto grid h-[88px] max-w-6xl md:h-[96px] grid-cols-[1fr_auto_1fr] items-center px-6">
           <div className="flex justify-start">
             <MenuDrawer />
           </div>
@@ -52,7 +52,15 @@ export function SiteHeader() {
             aria-label="Becca Nena Beauty Studio, home"
             className="flex flex-col items-center justify-center"
           >
-            <BrandLockup light={light} />
+            {/* The full logo, in its original proportions, just larger. */}
+            <Image
+              src="/images/logo.png"
+              alt="Becca Nena Beauty Studio"
+              width={768}
+              height={824}
+              priority
+              className={`h-[72px] w-auto md:h-[80px] ${light ? "brightness-0 invert" : ""}`}
+            />
           </Link>
 
           <div className="flex items-center justify-end gap-5">
@@ -70,42 +78,8 @@ export function SiteHeader() {
 
       {/* A fixed header no longer takes up space, so every page except the
           homepage (whose hero should reach the very top) gets a spacer. */}
-      {!isHome && <div aria-hidden className="h-[84px]" />}
+      {!isHome && <div aria-hidden className="h-[88px] md:h-[96px]" />}
     </>
   );
 }
 
-// The logo, rearranged for a slim header: the B mark and the "Becca Nena"
-// lettering come from the logo artwork (so the brand lettering stays exact),
-// with "Becca Nena" larger than in the stacked logo, and "BEAUTY STUDIO" as
-// real text so it stays sharp and readable at this size.
-function BrandLockup({ light }: { light: boolean }) {
-  const tint = light ? "brightness-0 invert" : undefined;
-  return (
-    <>
-      <Image
-        src="/images/logo-mark.png"
-        alt=""
-        width={367}
-        height={574}
-        priority
-        className={`h-[34px] w-auto ${tint ?? ""}`}
-      />
-      <Image
-        src="/images/logo-wordmark.png"
-        alt="Becca Nena"
-        width={735}
-        height={119}
-        priority
-        className={`mt-1 h-[19px] w-auto ${tint ?? ""}`}
-      />
-      <span
-        className={`mt-1 text-[9.5px] font-medium uppercase leading-none tracking-[0.42em] [padding-left:0.42em] ${
-          light ? "text-cream" : "text-taupe"
-        }`}
-      >
-        Beauty Studio
-      </span>
-    </>
-  );
-}
