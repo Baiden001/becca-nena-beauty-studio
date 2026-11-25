@@ -110,7 +110,7 @@ export default async function AdminDashboardPage() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <div className="rounded-md border border-rose/20 bg-white p-5">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm font-medium text-brown">Recent orders</p>
             <Link href="/admin/orders" className="text-xs text-rose hover:underline">
               View all
@@ -139,7 +139,7 @@ export default async function AdminDashboardPage() {
         </div>
 
         <div className="rounded-md border border-rose/20 bg-white p-5">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm font-medium text-brown">Inventory alerts</p>
             <Link href="/admin/products" className="text-xs text-rose hover:underline">
               Manage stock
@@ -165,7 +165,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="mt-6 rounded-md border border-rose/20 bg-white p-5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm font-medium text-brown">Active promotions</p>
           <Link href="/admin/promotions" className="text-xs text-rose hover:underline">
             Manage

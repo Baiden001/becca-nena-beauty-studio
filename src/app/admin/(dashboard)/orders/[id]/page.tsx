@@ -91,7 +91,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
     Back to Orders
   </Link>
 
-  <div className="mt-4 flex items-center justify-between">
+  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
     <div>
       <p className="eyebrow">Order</p>
       <h1 className="font-serif text-2xl text-brown">
@@ -99,7 +99,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
       </h1>
     </div>
 
-    <div className="text-right">
+    <div className="sm:text-right">
       <p className="text-sm text-taupe">
         {new Date(order.created_at).toLocaleString()}
       </p>
@@ -109,7 +109,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
           : "Awaiting payment"}
       </p>
       {canReturn && (
-        <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <div className="mt-3 flex flex-wrap gap-2 sm:justify-end">
           <PrintReceiptButton
             receipt={{
               orderNumber: order.order_number,
@@ -155,7 +155,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
           <p className="mt-2 text-sm text-brown">{order.delivery_location}</p>
           {order.notes && <p className="mt-2 text-sm text-taupe">Notes: {order.notes}</p>}
 
-          <div className="mt-4 flex gap-3">
+          <div className="mt-4 flex flex-wrap gap-3">
             {(!isWalkIn || customer?.phone) && (
             <a
               href={waLink(whatsappMessage)}
@@ -185,7 +185,8 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
       </div>
 
       <div className="mt-6 rounded-md border border-rose/20 bg-white">
-        <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[480px] text-left text-sm">
           <thead className="border-b border-rose/10 text-xs uppercase text-taupe">
             <tr>
               <th className="px-4 py-3">Product</th>
@@ -205,6 +206,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
             ))}
           </tbody>
         </table>
+        </div>
 
         <div className="ml-auto max-w-xs space-y-1 p-5 text-sm">
           <div className="flex justify-between text-taupe">

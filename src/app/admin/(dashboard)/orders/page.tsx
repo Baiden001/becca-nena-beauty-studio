@@ -57,7 +57,7 @@ export default async function AdminOrdersPage({
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-md border border-rose/20 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="border-b border-rose/10 text-xs uppercase text-taupe">
             <tr>
               <th className="px-4 py-3">Order</th>

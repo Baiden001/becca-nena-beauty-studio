@@ -262,7 +262,7 @@ export function ProductForm({
       <Section title="Variants" description="Optional — size, shade, or any other option customers choose from.">
         <div className="space-y-2">
           {variants.map((v, i) => (
-            <div key={i} className="flex gap-2">
+            <div key={i} className="flex flex-wrap gap-2 sm:flex-nowrap">
               <input
                 value={v.type}
                 onChange={(e) =>
@@ -271,7 +271,7 @@ export function ProductForm({
                   )
                 }
                 placeholder="Type — e.g. shade"
-                className="field-input w-32"
+                className="field-input w-full sm:w-32"
               />
               <input
                 value={v.value}
@@ -281,7 +281,7 @@ export function ProductForm({
                   )
                 }
                 placeholder="Value — e.g. Rose Nude"
-                className="field-input flex-1"
+                className="field-input min-w-0 flex-1"
               />
               <button
                 type="button"

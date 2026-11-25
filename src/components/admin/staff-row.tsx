@@ -48,7 +48,7 @@ export function StaffRow({
   }
 
   return (
-    <li className="flex items-center justify-between px-5 py-3">
+    <li className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3">
       <div>
         <p className="text-sm text-brown">
           {name} {isSelf && <span className="text-xs text-taupe">(you)</span>}

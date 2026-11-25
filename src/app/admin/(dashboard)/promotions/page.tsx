@@ -12,7 +12,7 @@ export default async function AdminPromotionsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-2xl text-brown">Promotions</h1>
         <Link
           href="/admin/promotions/new"
@@ -25,7 +25,7 @@ export default async function AdminPromotionsPage() {
       <ul className="mt-6 divide-y divide-rose/10 rounded-md border border-rose/20 bg-white">
         {promotions?.length ? (
           promotions.map((p) => (
-            <li key={p.id} className="flex items-center justify-between px-5 py-3">
+            <li key={p.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-5 py-3">
               <div>
                 <Link href={`/admin/promotions/${p.id}`} className="text-sm text-brown hover:text-rose">
                   {p.title}

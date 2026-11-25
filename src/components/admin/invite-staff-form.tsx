@@ -36,17 +36,17 @@ export function InviteStaffForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
-      <div>
+      <div className="w-full sm:w-auto">
         <label htmlFor="invite-name" className="field-label">Name</label>
         <input
           id="invite-name"
           value={name}
           placeholder="Ama Owusu"
           onChange={(e) => setName(e.target.value)}
-          className="field-input-sm mt-1.5 w-40"
+          className="field-input-sm mt-1.5 w-full sm:w-40"
         />
       </div>
-      <div>
+      <div className="w-full sm:w-auto">
         <label htmlFor="invite-email" className="field-label">Email</label>
         <input
           id="invite-email"
@@ -54,7 +54,7 @@ export function InviteStaffForm() {
           value={email}
           placeholder="ama@beccanena.com"
           onChange={(e) => setEmail(e.target.value)}
-          className="field-input-sm mt-1.5 w-52"
+          className="field-input-sm mt-1.5 w-full sm:w-52"
         />
       </div>
       <div>

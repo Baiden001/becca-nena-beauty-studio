@@ -186,7 +186,7 @@ export function NewOrderAlerts({ floatingToggle = true }: { floatingToggle?: boo
           role="alert"
           className="fixed inset-x-0 top-0 z-50 flex justify-center px-4 pt-4"
         >
-          <div className="flex w-full max-w-xl items-center gap-4 rounded-lg border border-rose bg-white px-5 py-4 shadow-xl">
+          <div className="flex w-full max-w-xl items-center gap-3 rounded-lg border border-rose bg-white px-4 py-3 shadow-xl sm:gap-4 sm:px-5 sm:py-4">
             <Bell className="shrink-0 text-rose" size={22} strokeWidth={1.75} aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-brown">
@@ -222,7 +222,7 @@ export function NewOrderAlerts({ floatingToggle = true }: { floatingToggle?: boo
           type="button"
           onClick={toggleSound}
           aria-pressed={soundOn}
-          className="fixed bottom-4 right-4 z-40 inline-flex items-center gap-2 rounded-full border border-rose/30 bg-white px-4 py-2 text-xs text-brown shadow-md hover:border-rose"
+          className="fixed bottom-4 right-4 z-40 hidden items-center gap-2 lg:inline-flex rounded-full border border-rose/30 bg-white px-4 py-2 text-xs text-brown shadow-md hover:border-rose"
         >
           {soundOn ? <Bell size={14} aria-hidden /> : <BellOff size={14} aria-hidden />}
           Order alerts {soundOn ? "on" : "muted"}

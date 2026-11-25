@@ -87,7 +87,7 @@ export function ImageUploader({
               type="button"
               onClick={() => handleRemove(url)}
               aria-label="Remove image"
-              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-brown/80 text-xs text-cream opacity-0 transition-opacity group-hover:opacity-100"
+              className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-brown/80 text-xs text-cream opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
             >
               ×
             </button>

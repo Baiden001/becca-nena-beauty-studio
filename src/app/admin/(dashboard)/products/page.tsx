@@ -25,7 +25,7 @@ export default async function AdminProductsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-2xl text-brown">Products</h1>
         <div className="flex items-center gap-3">
           <Link
@@ -44,7 +44,7 @@ export default async function AdminProductsPage() {
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-md border border-rose/20 bg-white">
-        <table className="w-full text-left text-sm">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="border-b border-rose/10 text-xs uppercase text-taupe">
             <tr>
               <th className="px-4 py-3">Name</th>

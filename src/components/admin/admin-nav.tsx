@@ -17,12 +17,15 @@ import {
   Users,
   UserCog,
   LogOut,
+  Bell,
+  BellOff,
   Menu,
   X,
   type LucideProps,
 } from "lucide-react";
 import { signOutStaff } from "@/app/actions/admin/auth";
 import { Logo } from "@/components/logo";
+import { useOrderSound } from "@/components/admin/new-order-alerts";
 import { InstallAppButton } from "@/components/admin/install-app-button";
 
 interface NavLink {
@@ -73,6 +76,7 @@ export function AdminNav({ staffName, role }: { staffName: string; role: string 
   const pathname = usePathname();
   const isOwner = role === "owner_admin";
   const [open, setOpen] = useState(false);
+  const [soundOn, toggleSound] = useOrderSound();
 
   // Close the phone menu after moving to another page.
   useEffect(() => setOpen(false), [pathname]);
@@ -92,6 +96,16 @@ export function AdminNav({ staffName, role }: { staffName: string; role: string 
       </button>
       <Logo size={22} />
       <p className="font-serif text-base text-brown">Becca Nena</p>
+      <button
+        type="button"
+        onClick={toggleSound}
+        aria-pressed={soundOn}
+        aria-label={soundOn ? "Mute online order alerts" : "Turn on online order alerts"}
+        title={soundOn ? "Order alerts on" : "Order alerts muted"}
+        className={`ml-auto flex h-10 w-10 items-center justify-center rounded-lg hover:bg-cream ${soundOn ? "text-brown" : "text-red-500"}`}
+      >
+        {soundOn ? <Bell size={19} aria-hidden /> : <BellOff size={19} aria-hidden />}
+      </button>
     </div>
     {open && <div className="fixed inset-0 z-40 bg-brown/40 lg:hidden" onClick={() => setOpen(false)} aria-hidden />}
 

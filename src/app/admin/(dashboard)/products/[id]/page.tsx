@@ -31,7 +31,7 @@ export default async function EditProductPage({ params }: { params: { id: string
 
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-serif text-2xl text-brown">{product.name}</h1>
         <p className="text-sm text-taupe">
           Stock: <span className="font-medium text-brown">{product.stock_quantity}</span>
@@ -50,7 +50,7 @@ export default async function EditProductPage({ params }: { params: { id: string
             <p className="text-xs font-medium uppercase tracking-wide text-taupe">Recent history</p>
             <ul className="mt-2 space-y-1 text-sm">
               {transactions.map((t) => (
-                <li key={t.id} className="flex justify-between text-brown">
+                <li key={t.id} className="flex justify-between gap-3 text-brown">
                   <span>
                     {t.quantity_change > 0 ? "+" : ""}
                     {t.quantity_change} · {t.reason}
