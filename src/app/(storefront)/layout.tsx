@@ -6,12 +6,13 @@ import { CookieConsent } from "@/components/cookie-consent";
 import { AnalyticsScripts } from "@/components/analytics-scripts";
 import { JsonLd } from "@/components/json-ld";
 import { SITE, absoluteUrl } from "@/lib/site";
+import { POLICY_CONFIG } from "@/lib/policies";
 
 // Tells search engines who the shop is, where it is, and how to search it.
 const shopData = [
   {
     "@context": "https://schema.org",
-    "@type": "Store",
+    "@type": ["Store", "HealthAndBeautyBusiness"],
     "@id": absoluteUrl("/#store"),
     name: SITE.name,
     url: absoluteUrl("/"),
@@ -23,6 +24,21 @@ const shopData = [
     sameAs: [SITE.instagram],
     currenciesAccepted: "GHS",
     paymentAccepted: "Cash, Credit Card, Mobile Money",
+    priceRange: "GH₵",
+    areaServed: [
+      { "@type": "City", name: "Accra" },
+      { "@type": "Country", name: "Ghana" },
+    ],
+    ...(SITE.openingHours.length ? { openingHours: SITE.openingHours } : {}),
+    ...(SITE.mapUrl ? { hasMap: SITE.mapUrl } : {}),
+    // Return policy once for the whole shop, so every product shows it in Google.
+    hasMerchantReturnPolicy: {
+      "@type": "MerchantReturnPolicy",
+      applicableCountry: "GH",
+      returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+      merchantReturnDays: POLICY_CONFIG.returnWindowDays,
+      merchantReturnLink: absoluteUrl("/policies/refund-policy"),
+    },
   },
   {
     "@context": "https://schema.org",

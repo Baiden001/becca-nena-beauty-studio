@@ -11,7 +11,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { q, category, collection, sort } = searchParams;
 
-  let title = "Shop skincare and body care";
+  let title = "Shop skincare, body care and fragrance in Ghana";
+  let description =
+    "Original skincare, body care and fragrance in Ghana. Shop online or visit Becca Nena Beauty Studio in East Legon, Accra. Pay with Mobile Money or card.";
   let canonical = "/shop";
 
   if (category) {
@@ -22,7 +24,8 @@ export async function generateMetadata({
       .eq("slug", category)
       .maybeSingle();
     if (data?.name) {
-      title = `${data.name}`;
+      title = `${data.name} in Ghana`;
+      description = `Shop original ${data.name.toLowerCase()} at Becca Nena Beauty Studio, East Legon, Accra. Order online and pay with Mobile Money or card.`;
       canonical = `/shop?category=${category}`;
     }
   }
@@ -33,7 +36,7 @@ export async function generateMetadata({
 
   return {
     title,
-    description: `Shop ${title.toLowerCase()} at Becca Nena Beauty Studio. Pay securely with Mobile Money or card.`,
+    description,
     alternates: { canonical },
     robots: thin ? { index: false, follow: true } : undefined,
   };

@@ -43,12 +43,16 @@ export async function generateMetadata({
   if (!product) return {};
 
   const images = imagesOf(product);
-  const description =
-    (product.description && product.description.replace(/\s+/g, " ").trim().slice(0, 155)) ||
-    `${product.brand ? `${product.brand} ` : ""}${product.name}. Available at ${SITE.name}, with Mobile Money and card payments.`;
-  const title = product.brand && !product.name.startsWith(product.brand)
+  const fullName = product.brand && !product.name.startsWith(product.brand)
     ? `${product.brand} ${product.name}`
     : product.name;
+  // "price in Ghana" is how people search for products here; the price in the
+  // snippet also helps them pick this result.
+  const title = `${fullName} – Price in Ghana`;
+  const stockNote = product.stock_status === "out_of_stock" ? "Currently out of stock" : "In stock";
+  const lead = `${fullName}: ${formatCedis(currentPrice(product))} at Becca Nena Beauty Studio, East Legon, Accra. ${stockNote}. Pay with Mobile Money or card.`;
+  const extra = product.description ? ` ${product.description.replace(/\s+/g, " ").trim()}` : "";
+  const description = (lead + extra).length > 160 ? `${(lead + extra).slice(0, 157).trimEnd()}…` : lead + extra;
 
   return {
     title,
@@ -56,14 +60,14 @@ export async function generateMetadata({
     alternates: { canonical: `/product/${params.slug}` },
     openGraph: {
       type: "website",
-      title,
+      title: fullName,
       description,
       url: `/product/${params.slug}`,
       images: images[0] ? [{ url: images[0].image_url, alt: product.name }] : [SITE.ogImagePath],
     },
     twitter: {
       card: "summary_large_image",
-      title,
+      title: fullName,
       description,
       images: images[0] ? [images[0].image_url] : [SITE.ogImagePath],
     },

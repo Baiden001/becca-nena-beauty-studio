@@ -46,8 +46,8 @@ export function HeroDrift() {
             Beauty, <span className="italic text-rose">curated.</span> Not just sold.
           </h1>
           <p className="mx-auto mt-5 max-w-md text-taupe md:mx-0">
-            A premium edit of skincare and body care, picked the way we&apos;d
-            recommend it to a friend. Pay securely online with Mobile Money or
+            A premium edit of skincare and body care from our studio in East
+            Legon, Accra, picked the way we&apos;d recommend it to a friend. Pay securely online with Mobile Money or
             card, and our team confirms delivery with you directly.
           </p>
         </div>

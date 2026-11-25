@@ -22,7 +22,7 @@ const workSans = Work_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: {
-    default: `${SITE.name} | ${SITE.tagline}`,
+    default: `${SITE.name} | ${SITE.seoTitle}`,
     template: `%s | ${SITE.name}`,
   },
   description: SITE.description,
@@ -35,14 +35,14 @@ export const metadata: Metadata = {
     type: "website",
     siteName: SITE.name,
     locale: "en_GH",
-    title: `${SITE.name} | ${SITE.tagline}`,
+    title: `${SITE.name} | ${SITE.seoTitle}`,
     description: SITE.description,
     url: "/",
     images: [{ url: SITE.ogImagePath, width: 1200, height: 630, alt: SITE.name }],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE.name} | ${SITE.tagline}`,
+    title: `${SITE.name} | ${SITE.seoTitle}`,
     description: SITE.description,
     images: [SITE.ogImagePath],
   },
