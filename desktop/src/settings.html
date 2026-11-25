@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en-GH">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>Till settings</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #F8F4EF; color: #302827; font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+    header { background: #302827; color: #F8F4EF; padding: 18px 24px; }
+    header h1 { margin: 0; font: 500 20px Georgia, serif; }
+    header p { margin: 2px 0 0; font-size: 12px; color: rgba(248,244,239,.65); }
+    main { padding: 20px 24px 24px; }
+    section { background: #fff; border: 1px solid rgba(169,130,130,.2); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    h2 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .1em; color: #766866; }
+    label { display: block; font-weight: 600; margin: 0 0 6px; }
+    .hint { font-size: 12px; color: #766866; margin: 6px 0 0; }
+    input[type=text], select { width: 100%; padding: 9px 11px; border: 1px solid rgba(118,104,102,.3); border-radius: 8px; font: inherit; color: inherit; background: #fff; }
+    input:focus, select:focus { outline: 2px solid rgba(169,130,130,.35); border-color: #A98282; }
+    .check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; margin: 10px 0 0; }
+    .check input { margin-top: 3px; accent-color: #A98282; width: 16px; height: 16px; }
+    .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+    button { border-radius: 8px; padding: 9px 14px; font: inherit; font-weight: 600; cursor: pointer; border: 1px solid rgba(48,40,39,.25); background: #fff; color: #302827; }
+    button:hover { border-color: #302827; }
+    button.primary { background: #302827; color: #F8F4EF; border-color: #302827; padding: 11px 22px; }
+    button.primary:hover { background: #A98282; border-color: #A98282; }
+    .msg { font-size: 12px; }
+    .ok { color: #3c6b3c; } .err { color: #b3261e; }
+    footer { display: flex; justify-content: space-between; align-items: center; }
+    .ver { font-size: 12px; color: #766866; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Till settings</h1>
+    <p>Saved on this computer only.</p>
+  </header>
+  <main>
+    <section>
+      <h2>Receipt printer</h2>
+      <label for="printer">Print receipts on</label>
+      <select id="printer"></select>
+      <p class="hint">Receipts print straight away, with no print dialog. Set the printer's paper size to the 80 mm roll in its Windows printer settings.</p>
+      <div class="row">
+        <button type="button" id="testPrint">Print a test receipt</button>
+        <span class="msg" id="printMsg"></span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Cash drawer</h2>
+      <p class="hint" style="margin-top:0">For a drawer plugged into the receipt printer with a phone-style (RJ11) cable.</p>
+      <label class="check"><input type="checkbox" id="drawerOnCash"> <span>Open the drawer by itself after every cash sale</span></label>
+      <div class="row">
+        <label for="drawerPin" style="margin:0;font-weight:400">Drawer connector</label>
+        <select id="drawerPin" style="width:auto">
+          <option value="0">Pin 2 (most drawers)</option>
+          <option value="1">Pin 5</option>
+        </select>
+        <button type="button" id="testDrawer">Test the drawer</button>
+        <span class="msg" id="drawerMsg"></span>
+      </div>
+    </section>
+
+    <section>
+      <h2>Screens &amp; start-up</h2>
+      <label class="check"><input type="checkbox" id="customerScreenAtStart"> <span>Open the customer screen on the second monitor when the till starts</span></label>
+      <div class="row"><button type="button" id="openCustomer">Open customer screen now</button><span class="msg" id="screenMsg"></span></div>
+      <label class="check"><input type="checkbox" id="startWithComputer"> <span>Start the till when this computer turns on</span></label>
+    </section>
+
+    <section>
+      <h2>Shop website</h2>
+      <label for="siteUrl">Website address</label>
+      <input type="text" id="siteUrl" spellcheck="false" placeholder="https://beccanenabeautystudio.com">
+      <p class="hint">Only change this if the website address changes.</p>
+    </section>
+
+    <footer>
+      <span class="ver" id="version"></span>
+      <div class="row" style="margin:0">
+        <span class="msg" id="saveMsg"></span>
+        <button type="button" class="primary" id="save">Save</button>
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    var $ = function (id) { return document.getElementById(id); };
+    function show(el, res, okText) {
+      el.className = "msg " + (res && res.ok ? "ok" : "err");
+      el.textContent = res && res.ok ? okText : "Didn't work: " + ((res && res.error) || "unknown error");
+    }
+
+    bnSettings.get().then(function (data) {
+      var s = data.settings;
+      var sel = $("printer");
+      var def = document.createElement("option");
+      def.value = "";
+      def.textContent = "Computer's default printer";
+      sel.appendChild(def);
+      data.printers.forEach(function (p) {
+        var o = document.createElement("option");
+        o.value = p.name;
+        o.textContent = p.label + (p.isDefault ? " (default)" : "");
+        sel.appendChild(o);
+      });
+      sel.value = s.printer || "";
+      $("drawerOnCash").checked = s.drawerOnCash;
+      $("drawerPin").value = String(s.drawerPin || 0);
+      $("customerScreenAtStart").checked = s.customerScreenAtStart;
+      $("startWithComputer").checked = s.startWithComputer;
+      $("siteUrl").value = s.siteUrl;
+      $("version").textContent = "Becca Nena POS " + data.version;
+      if (!data.hasSecondScreen) $("screenMsg").textContent = "No second monitor found right now.";
+      if (!data.printers.length) {
+        $("printMsg").className = "msg err";
+        $("printMsg").textContent = "No printers installed. Install the receipt printer's driver first.";
+      }
+    });
+
+    $("testPrint").onclick = function () {
+      $("printMsg").textContent = "Printing…";
+      bnSettings.testPrint($("printer").value).then(function (r) { show($("printMsg"), r, "Sent to the printer."); });
+    };
+    $("testDrawer").onclick = function () {
+      $("drawerMsg").textContent = "Opening…";
+      bnSettings.testDrawer($("printer").value, $("drawerPin").value).then(function (r) {
+        show($("drawerMsg"), r, "Sent. If it didn't open, try the other connector.");
+      });
+    };
+    $("openCustomer").onclick = function () { bnSettings.openCustomerScreen(); };
+    $("save").onclick = function () {
+      bnSettings.save({
+        printer: $("printer").value,
+        drawerOnCash: $("drawerOnCash").checked,
+        drawerPin: Number($("drawerPin").value),
+        customerScreenAtStart: $("customerScreenAtStart").checked,
+        startWithComputer: $("startWithComputer").checked,
+        siteUrl: $("siteUrl").value,
+      }).then(function (r) {
+        $("saveMsg").className = "msg ok";
+        $("saveMsg").textContent = r && r.ok ? "Saved." : "";
+        setTimeout(function () { window.close(); }, 600);
+      });
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,43 @@
+{
+  "name": "becca-nena-pos",
+  "productName": "Becca Nena POS",
+  "version": "1.0.0",
+  "description": "Becca Nena Beauty Studio point of sale for the shop counter.",
+  "author": "Becca Nena Beauty Studio",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis --publish never",
+    "dist:mac": "electron-builder --mac dmg --publish never"
+  },
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.beccanena.pos",
+    "productName": "Becca Nena POS",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["src/**/*", "package.json"],
+    "win": {
+      "target": ["nsis"],
+      "icon": "build/icon.png",
+      "artifactName": "Becca-Nena-POS-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Becca Nena POS"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "build/icon.png",
+      "category": "public.app-category.business",
+      "artifactName": "Becca-Nena-POS-${version}.${ext}"
+    }
+  }
+}

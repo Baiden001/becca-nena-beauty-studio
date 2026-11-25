@@ -7,6 +7,7 @@ import {
   ShoppingBag,
   Store,
   Undo2,
+  Calculator,
   Package,
   Tag,
   Layers,
@@ -42,6 +43,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/walk-in", label: "Point of sale", icon: Store },
       { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
       { href: "/admin/returns", label: "Returns", icon: Undo2 },
+      { href: "/admin/end-of-day", label: "End of day", icon: Calculator },
     ],
   },
   {

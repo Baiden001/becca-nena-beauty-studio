@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  Archive,
+  Calculator,
   ChevronDown,
   LayoutDashboard,
   LogOut,
@@ -21,11 +23,13 @@ import { Logo } from "@/components/logo";
 import { InstallAppButton } from "@/components/admin/install-app-button";
 import { signOutStaff } from "@/app/actions/admin/auth";
 import { startCustomerScreen } from "@/lib/customer-display";
+import { desktop } from "@/lib/receipt";
 
 const MENU = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/returns", label: "Returns", icon: Undo2 },
+  { href: "/admin/end-of-day", label: "End of day", icon: Calculator },
   { href: "/admin/products", label: "Products & stock", icon: Package },
   { href: "/admin/customers", label: "Customers", icon: Users },
 ];
@@ -81,6 +85,8 @@ export function PosTopBar({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => setIsDesktop(Boolean(desktop())), []);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -143,6 +149,21 @@ export function PosTopBar({
               </Link>
             ))}
             <div className="my-1.5 border-t border-rose/10" />
+            {isDesktop && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={async () => {
+                  setMenuOpen(false);
+                  const res = await desktop()?.openDrawer();
+                  if (res && !res.ok) window.alert(`Couldn't open the cash drawer: ${res.error ?? "unknown error"}`);
+                }}
+                className="flex w-full items-center gap-3 px-4 py-2.5 text-sm hover:bg-cream"
+              >
+                <Archive size={17} className="text-taupe" aria-hidden />
+                Open cash drawer
+              </button>
+            )}
             <InstallAppButton className="w-full px-4 py-2.5 text-brown hover:bg-cream" />
             <button
               type="button"

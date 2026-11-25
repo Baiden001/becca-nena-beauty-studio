@@ -186,11 +186,29 @@ export function buildReceiptBody(r: ReceiptData, origin: string): string {
   ${RECEIPT_CONFIG.storeLocation ? `<div class="c small">${esc(RECEIPT_CONFIG.storeLocation)}</div>` : ""}`;
 }
 
+/** The Becca Nena desktop app (Electron) adds this; in a browser it's absent. */
+export interface DesktopBridge {
+  isDesktop: true;
+  /** Prints the current page silently to the till's chosen receipt printer. */
+  print: () => Promise<{ ok: boolean; error?: string }>;
+  /** Kicks the cash drawer attached to the receipt printer. */
+  openDrawer: () => Promise<{ ok: boolean; error?: string }>;
+  /** Whether the drawer should open by itself on cash sales (a desktop setting). */
+  drawerOnCash: () => Promise<boolean>;
+}
+
+export function desktop(): DesktopBridge | null {
+  if (typeof window === "undefined") return null;
+  const d = (window as unknown as { bnDesktop?: DesktopBridge }).bnDesktop;
+  return d?.isDesktop ? d : null;
+}
+
 /**
- * Prints a receipt. The receipt is put into the page (hidden on screen) and a
- * print-only style hides everything else, so only the receipt is printed.
+ * Prints an 80 mm slip. The slip is put into the page (hidden on screen) and a
+ * print-only style hides everything else, so only the slip is printed. In the
+ * desktop app it goes straight to the receipt printer with no dialog.
  */
-export async function printReceipt(receipt: ReceiptData) {
+export async function printSlip(bodyHtml: string) {
   const origin = window.location.origin;
 
   // Let the logo finish loading first, or it can print as an empty box.
@@ -214,13 +232,29 @@ export async function printReceipt(receipt: ReceiptData) {
     root.id = ROOT_ID;
     document.body.appendChild(root);
   }
-  root.innerHTML = `<div id="bn-receipt">${buildReceiptBody(receipt, origin)}</div>`;
+  root.innerHTML = `<div id="bn-receipt">${bodyHtml}</div>`;
 
   // Take the print-only style away again afterwards so it can't affect any
   // other printing from the app.
   const cleanup = () => document.getElementById(STYLE_ID)?.remove();
+
+  const app = desktop();
+  if (app) {
+    const res = await app.print().catch((e) => ({ ok: false, error: String(e) }));
+    cleanup();
+    if (!res.ok) window.alert(`The receipt didn't print: ${res.error ?? "unknown printer error"}`);
+    return;
+  }
+
   window.addEventListener("afterprint", cleanup, { once: true });
   setTimeout(cleanup, 120_000);
-
   window.print();
 }
+
+/** Prints a sales receipt. */
+export async function printReceipt(receipt: ReceiptData) {
+  await printSlip(buildReceiptBody(receipt, window.location.origin));
+}
+
+/** For other slips (e.g. end of day): the shop's escaped-HTML helpers. */
+export const slipHelpers = { esc, money, stamp };

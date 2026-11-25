@@ -27,7 +27,7 @@ import {
   type SaleProduct,
 } from "@/app/actions/admin/walk-in";
 import { beep } from "@/lib/beep";
-import { printReceipt, type ReceiptData } from "@/lib/receipt";
+import { desktop, printReceipt, type ReceiptData } from "@/lib/receipt";
 import { publishDisplay } from "@/lib/customer-display";
 import { formatCedis } from "@/lib/pricing";
 import { holdSale, readHeldSales, removeHeldSale, type HeldSale } from "@/lib/held-sales";
@@ -359,6 +359,11 @@ export function PosRegister({
     });
     setPaying(false);
     beep(true);
+    // Desktop app: pop the cash drawer for cash sales (if turned on in its settings).
+    const app = desktop();
+    if (app && p.method === "cash") {
+      void app.drawerOnCash().then((on) => (on ? app.openDrawer() : null)).catch(() => {});
+    }
     if (autoPrint) void printReceipt(receipt);
     startRefresh(() => router.refresh()); // fresh stock numbers in the grid
   }
