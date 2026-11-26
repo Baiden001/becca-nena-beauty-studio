@@ -171,6 +171,28 @@ export async function loadSalesReport(from: string, to: string): Promise<EndOfDa
   );
   const items = itemResults.flat();
 
+  // How each in-store sale was paid. A split sale has several lines (e.g.
+  // MoMo + cash). Sales from before split payments existed, or if the table
+  // isn't there yet, fall back to the sale's single payment method.
+  const paymentsByOrder = new Map<string, { method: PaymentMethod; amount: number }[]>();
+  const walkInIds = orders.filter((o) => o.channel === "walk_in").map((o) => o.id);
+  try {
+    const payResults = await Promise.all(
+      chunks(walkInIds, 150).map((ids) =>
+        fetchAll((a, b) =>
+          supabase.from("order_payments").select("order_id, method, amount").in("order_id", ids).range(a, b)
+        )
+      )
+    );
+    for (const p of payResults.flat()) {
+      const list = paymentsByOrder.get(p.order_id) ?? [];
+      list.push({ method: p.method, amount: Number(p.amount) || 0 });
+      paymentsByOrder.set(p.order_id, list);
+    }
+  } catch (e) {
+    console.warn("[sales-report] payment lines unavailable, using one method per sale:", e);
+  }
+
   // Payment methods: walk-in sales by how they were paid, online orders together.
   const methods = new Map<MethodKey, MethodTotals>();
   const method = (key: MethodKey) => {
@@ -201,10 +223,20 @@ export async function loadSalesReport(from: string, to: string): Promise<EndOfDa
     gross += total;
     discounts += Number(o.discount_total) || 0;
 
-    const key: MethodKey = o.channel === "walk_in" && o.payment_method ? o.payment_method : "online";
-    const m = method(key);
-    m.sales += total;
-    m.salesCount += 1;
+    // The parts of this sale's payment: one for most sales, several for a split.
+    const parts: { key: MethodKey; amount: number }[] =
+      o.channel !== "walk_in"
+        ? [{ key: "online", amount: total }]
+        : paymentsByOrder.get(o.id)?.length
+          ? paymentsByOrder.get(o.id)!.map((p) => ({ key: p.method, amount: p.amount }))
+          : [{ key: o.payment_method ?? "cash", amount: total }];
+    for (const part of parts) {
+      const m = method(part.key);
+      m.sales += part.amount;
+      m.salesCount += 1;
+    }
+    const cashPart = parts.filter((p) => p.key === "cash").reduce((sum, p) => sum + p.amount, 0);
+    const methodText = [...new Set(parts.map((p) => method(p.key).label))].join(" + ");
 
     const cashierId = o.channel === "walk_in" ? o.sold_by ?? "unknown" : "online";
     const cashierName =
@@ -216,14 +248,14 @@ export async function loadSalesReport(from: string, to: string): Promise<EndOfDa
     }
     c.salesCount += 1;
     c.total += total;
-    if (key === "cash") c.cash += total;
+    c.cash += cashPart;
 
     sales.push({
       id: o.id,
       orderNumber: o.order_number,
       paidAt: o.paid_at ?? "",
       channel: o.channel,
-      method: m.label,
+      method: methodText,
       cashier: cashierName,
       total,
     });

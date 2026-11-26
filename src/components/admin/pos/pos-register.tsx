@@ -32,7 +32,7 @@ import { publishDisplay } from "@/lib/customer-display";
 import { formatCedis } from "@/lib/pricing";
 import { holdSale, readHeldSales, removeHeldSale, type HeldSale } from "@/lib/held-sales";
 import { PosTopBar, useOnline } from "./pos-top-bar";
-import { PaymentPanel, PAYMENT_METHODS, type PaymentResult } from "./payment-panel";
+import { PaymentPanel, methodLabel as labelOf, type PaymentResult } from "./payment-panel";
 
 interface Line {
   product: SaleProduct;
@@ -315,17 +315,17 @@ export function PosRegister({
   async function completeSale(p: PaymentResult) {
     setBusy(true);
     setPayError(null);
-    const methodLabel = PAYMENT_METHODS.find((m) => m.value === p.method)?.label ?? "";
-    const allNotes = [notes.trim(), p.reference ? `${methodLabel} ref: ${p.reference}` : ""]
-      .filter(Boolean)
-      .join(" · ");
+    // e.g. "Mobile Money + Cash" for a split payment
+    const methodLabel = [...new Set(p.payments.map((x) => labelOf(x.method)))].join(" + ");
+    const hasCash = p.payments.some((x) => x.method === "cash");
 
     const result = await recordWalkInSale({
       lines: lines.map((l) => ({ productId: l.product.id, quantity: l.quantity })),
-      paymentMethod: p.method,
+      paymentMethod: p.payments[0].method,
+      payments: p.payments.map((x) => ({ method: x.method, amount: x.amount, reference: x.reference })),
       customerName,
       customerPhone,
-      notes: allNotes,
+      notes: notes.trim(),
     });
     setBusy(false);
 
@@ -348,20 +348,23 @@ export function PosRegister({
         regularPrice: l.product.regularPrice,
       })),
       paymentMethod: methodLabel,
+      payments:
+        p.payments.length > 1 ? p.payments.map((x) => ({ label: labelOf(x.method), amount: x.amount })) : undefined,
       amountTendered: p.tendered,
+      change: p.change,
     };
     setCompleted({
       orderId: result.orderId,
       orderNumber: result.orderNumber,
       total: saleTotal,
-      change: p.tendered ? Math.max(0, p.tendered - saleTotal) : 0,
+      change: p.change,
       receipt,
     });
     setPaying(false);
     beep(true);
     // Desktop app: pop the cash drawer for cash sales (if turned on in its settings).
     const app = desktop();
-    if (app && p.method === "cash") {
+    if (app && hasCash) {
       void app.drawerOnCash().then((on) => (on ? app.openDrawer() : null)).catch(() => {});
     }
     if (autoPrint) void printReceipt(receipt);
@@ -714,11 +717,20 @@ export function PosRegister({
                   Total {formatCedis(completed.total)} · cash received{" "}
                   {formatCedis(completed.receipt.amountTendered ?? completed.total)}
                 </p>
+                {completed.receipt.payments && (
+                  <p className="mt-1 text-sm text-taupe">
+                    {completed.receipt.payments.map((x) => `${x.label} ${formatCedis(x.amount)}`).join(" + ")}
+                  </p>
+                )}
               </>
             ) : (
               <>
                 <p className="mt-3 font-serif text-5xl tabular-nums text-brown">{formatCedis(completed.total)}</p>
-                <p className="mt-2 text-sm text-taupe">Paid by {completed.receipt.paymentMethod.toLowerCase()}</p>
+                <p className="mt-2 text-sm text-taupe">
+                  {completed.receipt.payments
+                    ? completed.receipt.payments.map((x) => `${x.label} ${formatCedis(x.amount)}`).join(" + ")
+                    : `Paid by ${completed.receipt.paymentMethod.toLowerCase()}`}
+                </p>
               </>
             )}
             <p className="mt-1 text-xs text-taupe">Stock updated · recorded by {staffName}</p>

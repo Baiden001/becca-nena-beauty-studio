@@ -132,6 +132,16 @@ export interface OrderRow {
   updated_at: string;
 }
 
+/** One part of how a sale was paid (a sale can be split across methods). */
+export interface OrderPaymentRow {
+  id: string;
+  order_id: string;
+  method: PaymentMethod;
+  amount: number;
+  reference: string | null;
+  created_at: string;
+}
+
 export interface ReturnRow {
   id: string;
   return_number: string;
@@ -220,6 +230,7 @@ export interface Database {
       customers: TableDef<CustomerRow, "name">;
       orders: TableDef<OrderRow, "customer_id" | "delivery_location">;
       newsletter_subscribers: TableDef<NewsletterSubscriberRow, "email">;
+      order_payments: TableDef<OrderPaymentRow, "order_id" | "method" | "amount">;
       returns: TableDef<ReturnRow, "return_number" | "order_id" | "refund_method" | "reason">;
       return_items: TableDef<
         ReturnItemRow,
@@ -260,6 +271,7 @@ export interface Database {
             regular_price: number;
             final_price: number;
           }[];
+          p_payments?: { method: PaymentMethod; amount: number; reference?: string | null }[] | null;
         };
         Returns: { out_order_id: string; out_order_number: string }[];
       };

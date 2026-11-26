@@ -46,8 +46,12 @@ export interface ReceiptData {
   }[];
   /** Only the method actually used, e.g. "Cash" or "Mobile Money". */
   paymentMethod: string;
-  /** Cash handed over by the customer, when it was more than the total. */
+  /** Split payment: each part, e.g. Mobile Money GH₵100 + Cash GH₵140. */
+  payments?: { label: string; amount: number }[];
+  /** Cash handed over by the customer, when it was more than needed. */
   amountTendered?: number | null;
+  /** Change given back. Worked out from amountTendered and the total when left out. */
+  change?: number;
 }
 
 const ROOT_ID = "bn-receipt-root";
@@ -163,13 +167,19 @@ export function buildReceiptBody(r: ReceiptData, origin: string): string {
   <hr>
   <table class="kv">
     <tr><td>Payment method</td><td class="b">${esc(r.paymentMethod)}</td></tr>
-    <tr><td>Amount paid</td><td>${esc(money(total))}</td></tr>
     ${
-      r.amountTendered && r.amountTendered > total
-        ? `<tr><td>Cash received</td><td>${esc(money(r.amountTendered))}</td></tr>
-    <tr><td class="b">Change</td><td class="b">${esc(money(r.amountTendered - total))}</td></tr>`
+      r.payments && r.payments.length > 1
+        ? r.payments.map((p) => `<tr><td>${esc(p.label)}</td><td>${esc(money(p.amount))}</td></tr>`).join("")
         : ""
     }
+    <tr><td>Amount paid</td><td>${esc(money(total))}</td></tr>
+    ${(() => {
+      const change = r.change ?? (r.amountTendered ? r.amountTendered - total : 0);
+      return r.amountTendered && change > 0
+        ? `<tr><td>Cash received</td><td>${esc(money(r.amountTendered))}</td></tr>
+    <tr><td class="b">Change</td><td class="b">${esc(money(change))}</td></tr>`
+        : "";
+    })()}
   </table>
 
   <hr>

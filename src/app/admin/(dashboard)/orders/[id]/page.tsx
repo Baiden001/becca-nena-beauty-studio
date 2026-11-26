@@ -68,8 +68,22 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
       pos_terminal: "POS terminal",
       bank_transfer: "Bank transfer",
     })[m ?? ""] ?? null;
-  const receiptMethod =
-    methodLabel(order.payment_method) ?? methodLabel(order.payment_channel) ?? "Online payment";
+  // How an in-store sale was paid: one line, or several for a split payment.
+  const { data: paymentRows } = isWalkIn
+    ? await supabase
+        .from("order_payments")
+        .select("method, amount, reference")
+        .eq("order_id", order.id)
+        .order("created_at")
+    : { data: null };
+  const payments = (paymentRows ?? []).map((p) => ({
+    label: methodLabel(p.method) ?? p.method,
+    amount: Number(p.amount),
+    reference: p.reference,
+  }));
+  const receiptMethod = payments.length
+    ? [...new Set(payments.map((p) => p.label))].join(" + ")
+    : methodLabel(order.payment_method) ?? methodLabel(order.payment_channel) ?? "Online payment";
 
   const customer = order.customers as {
     name: string;
@@ -124,6 +138,7 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
                 regularPrice: Number(i.regular_price),
               })),
               paymentMethod: receiptMethod,
+              payments: payments.length > 1 ? payments.map(({ label, amount }) => ({ label, amount })) : undefined,
             }}
           />
         </div>
@@ -138,9 +153,19 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
       )}
       {isWalkIn && (
         <p className="mt-1 text-xs text-taupe">
-          In-store sale{order.payment_method ? ` · ${order.payment_method.replace(/_/g, " ")}` : ""}
+          In-store sale · {receiptMethod.toLowerCase()}
           {soldBy ? ` · sold by ${soldBy}` : ""}
         </p>
+      )}
+      {isWalkIn && payments.length > 0 && (payments.length > 1 || payments.some((p) => p.reference)) && (
+        <ul className="mt-1 space-y-0.5 text-xs text-taupe">
+          {payments.map((p, i) => (
+            <li key={i}>
+              {p.label} {formatCedis(p.amount)}
+              {p.reference ? ` · ref ${p.reference}` : ""}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   </div>

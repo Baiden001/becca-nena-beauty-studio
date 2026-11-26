@@ -172,9 +172,19 @@ export async function loadRegister(): Promise<{
   return { ok: true, products, categories };
 }
 
+export interface SalePayment {
+  method: PaymentMethod;
+  amount: number;
+  /** MoMo transaction ID, card slip number... optional. */
+  reference?: string;
+}
+
 export interface WalkInSaleInput {
   lines: { productId: string; quantity: number }[];
+  /** For a sale paid one way. Ignored when `payments` is given. */
   paymentMethod: PaymentMethod;
+  /** For a split payment, e.g. GH₵100 MoMo + GH₵140 cash. Must add up to the total. */
+  payments?: SalePayment[];
   customerName?: string;
   customerPhone?: string;
   notes?: string;
@@ -197,7 +207,14 @@ export async function recordWalkInSale(input: WalkInSaleInput): Promise<WalkInSa
     const staff = await getCurrentStaff();
     if (!staff) return { ok: false, error: "Not signed in." };
 
-    if (!PAYMENT_METHODS.includes(input.paymentMethod)) {
+    const split = (input.payments ?? []).filter((p) => Number(p.amount) > 0);
+    if (split.length > 0) {
+      if (split.length > 6) return { ok: false, error: "Too many payments on one sale." };
+      for (const p of split) {
+        if (!PAYMENT_METHODS.includes(p.method)) return { ok: false, error: "Choose how each part was paid." };
+        if (!Number.isFinite(Number(p.amount))) return { ok: false, error: "One of the payment amounts is invalid." };
+      }
+    } else if (!PAYMENT_METHODS.includes(input.paymentMethod)) {
       return { ok: false, error: "Choose how the customer paid." };
     }
     if (!input.lines?.length) {
@@ -281,18 +298,42 @@ export async function recordWalkInSale(input: WalkInSaleInput): Promise<WalkInSa
       return { ok: false, error: "Could not save the customer record. Please try again." };
     }
 
+    // The order's main method is the biggest part of the payment; every part
+    // is saved separately for the reports.
+    const payments = split.map((p) => ({
+      method: p.method,
+      amount: Math.round(Number(p.amount) * 100) / 100,
+      reference: p.reference?.trim().slice(0, 80) || null,
+    }));
+    const mainMethod = payments.length
+      ? payments.reduce((a, b) => (b.amount > a.amount ? b : a)).method
+      : input.paymentMethod;
+
     const { data, error } = await supabase.rpc("fn_record_walk_in_sale", {
       p_customer_id: customerId,
       p_sold_by: staff.id,
-      p_payment_method: input.paymentMethod,
+      p_payment_method: mainMethod,
       p_notes: input.notes?.trim() || null,
       p_lines: lines,
+      ...(payments.length ? { p_payments: payments } : {}),
     });
 
     if (error || !data?.length) {
       console.error("[walk-in-sale] failed:", error);
       const message = error?.message ?? "";
-      if (message.includes("Not enough stock") || message.includes("no longer exists")) {
+      if (message.includes("p_payments") || message.includes("order_payments")) {
+        return {
+          ok: false,
+          error:
+            "The till needs a one-time database update for split payments (supabase/split-payments.sql). Nothing was saved.",
+        };
+      }
+      if (
+        message.includes("Not enough stock") ||
+        message.includes("no longer exists") ||
+        message.includes("do not add up") ||
+        message.includes("more than zero")
+      ) {
         return { ok: false, error: message };
       }
       return { ok: false, error: "Could not record the sale. Nothing was saved. Please try again." };
