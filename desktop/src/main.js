@@ -24,6 +24,8 @@ const DEFAULTS = {
   drawerOnCash: true,
   /** Which drawer connector pin the printer kicks: 0 = pin 2 (most drawers), 1 = pin 5. */
   drawerPin: 0,
+  /** Show Windows' print dialog every time (for printers that need choices made there). */
+  printDialog: false,
   customerScreenAtStart: true,
   startWithComputer: false,
 };
@@ -239,11 +241,11 @@ function openSettings() {
 
 // ───────────────────────── printing & cash drawer ─────────────────────────
 
-function printContents(contents) {
+function printOnce(contents, silent) {
   return new Promise((resolve) => {
     contents.print(
       {
-        silent: true,
+        silent,
         printBackground: true,
         deviceName: settings.printer || undefined,
         margins: { marginType: "none" },
@@ -251,6 +253,24 @@ function printContents(contents) {
       (ok, reason) => resolve(ok ? { ok: true } : { ok: false, error: reason || "Printing failed" })
     );
   });
+}
+
+/**
+ * Prints straight to the receipt printer. If that fails (some printers need
+ * choices made in the dialog) or the till is set to always ask, Windows'
+ * normal print dialog opens instead, like printing from a browser.
+ */
+async function printContents(contents, { allowDialog = true } = {}) {
+  if (settings.printDialog && allowDialog) {
+    const res = await printOnce(contents, false);
+    // Closing the dialog without printing isn't an error worth a pop-up.
+    return res.ok || /cancel/i.test(res.error || "") ? { ok: true } : res;
+  }
+  const silent = await printOnce(contents, true);
+  if (silent.ok || !allowDialog) return silent;
+  console.warn("[bn-pos] silent print failed, opening the print dialog:", silent.error);
+  const viaDialog = await printOnce(contents, false);
+  return viaDialog.ok || /cancel/i.test(viaDialog.error || "") ? { ok: true } : viaDialog;
 }
 
 async function receiptPrinterName(contents) {
@@ -389,6 +409,7 @@ ipcMain.handle("bn-settings:save", (event, next) => {
     drawerOnCash: Boolean(next.drawerOnCash),
     drawerPin: Number(next.drawerPin) === 1 ? 1 : 0,
     customerScreenAtStart: Boolean(next.customerScreenAtStart),
+    printDialog: Boolean(next.printDialog),
     startWithComputer: Boolean(next.startWithComputer),
   });
   if (siteOrigin() !== before && tillWindow) tillWindow.loadURL(siteOrigin() + TILL_PATH).catch(() => {});

@@ -41,6 +41,8 @@
       <label for="printer">Print receipts on</label>
       <select id="printer"></select>
       <p class="hint">Receipts print straight away, with no print dialog. Set the printer's paper size to the 80 mm roll in its Windows printer settings.</p>
+      <label class="check"><input type="checkbox" id="printDialog"> <span>Always show the print dialog (choose the printer and settings each time, like before)</span></label>
+      <p class="hint">Use this if receipts don't come out with the setting off. If printing straight away fails, the dialog opens by itself anyway.</p>
       <div class="row">
         <button type="button" id="testPrint">Print a test receipt</button>
         <span class="msg" id="printMsg"></span>
@@ -107,6 +109,7 @@
       });
       sel.value = s.printer || "";
       $("drawerOnCash").checked = s.drawerOnCash;
+      $("printDialog").checked = !!s.printDialog;
       $("drawerPin").value = String(s.drawerPin || 0);
       $("customerScreenAtStart").checked = s.customerScreenAtStart;
       $("startWithComputer").checked = s.startWithComputer;
@@ -134,6 +137,7 @@
       bnSettings.save({
         printer: $("printer").value,
         drawerOnCash: $("drawerOnCash").checked,
+        printDialog: $("printDialog").checked,
         drawerPin: Number($("drawerPin").value),
         customerScreenAtStart: $("customerScreenAtStart").checked,
         startWithComputer: $("startWithComputer").checked,
