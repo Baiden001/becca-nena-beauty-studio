@@ -1,22 +1,35 @@
 import type { Metadata, Viewport } from "next";
 import { SITE, isLive, siteUrl } from "@/lib/site";
-import { Fraunces, Work_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
+
+// Fonts are stored in the project (src/app/fonts) rather than downloaded from
+// Google Fonts during each build, so a hiccup at Google can't break a deploy.
 
 // Editorial display face — warm, high-contrast, a deliberate step away from
 // the Playfair-Display-on-every-beauty-site default.
-const fraunces = Fraunces({
-  subsets: ["latin"],
+const fraunces = localFont({
   variable: "--font-editorial",
-  style: ["normal", "italic"],
-  weight: ["400", "500", "600"],
+  display: "swap",
+  src: [
+    { path: "./fonts/fraunces-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/fraunces-latin-400-italic.woff2", weight: "400", style: "italic" },
+    { path: "./fonts/fraunces-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/fraunces-latin-500-italic.woff2", weight: "500", style: "italic" },
+    { path: "./fonts/fraunces-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/fraunces-latin-600-italic.woff2", weight: "600", style: "italic" },
+  ],
 });
 
 // Body / UI face — quiet and legible so it never competes with fraunces.
-const workSans = Work_Sans({
-  subsets: ["latin"],
+const workSans = localFont({
   variable: "--font-body",
-  weight: ["400", "500", "600"],
+  display: "swap",
+  src: [
+    { path: "./fonts/work-sans-latin-400-normal.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/work-sans-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/work-sans-latin-600-normal.woff2", weight: "600", style: "normal" },
+  ],
 });
 
 export const metadata: Metadata = {
