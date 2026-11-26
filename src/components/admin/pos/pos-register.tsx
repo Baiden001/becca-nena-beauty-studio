@@ -40,6 +40,7 @@ interface Line {
 }
 
 interface Completed {
+  emailWarning?: string;
   orderId: string;
   orderNumber: string;
   total: number;
@@ -354,6 +355,7 @@ export function PosRegister({
       change: p.change,
     };
     setCompleted({
+      emailWarning: result.emailWarning,
       orderId: result.orderId,
       orderNumber: result.orderNumber,
       total: saleTotal,
@@ -734,6 +736,11 @@ export function PosRegister({
               </>
             )}
             <p className="mt-1 text-xs text-taupe">Stock updated · recorded by {staffName}</p>
+            {completed.emailWarning && (
+              <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-left text-xs text-amber-900">
+                {completed.emailWarning}
+              </p>
+            )}
 
             <button
               type="button"

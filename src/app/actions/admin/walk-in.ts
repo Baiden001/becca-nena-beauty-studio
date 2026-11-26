@@ -192,6 +192,8 @@ export interface WalkInSaleInput {
 
 export interface WalkInSaleResult {
   ok: boolean;
+  /** The sale saved, but the staff email didn't go out (shown on the till). */
+  emailWarning?: string;
   orderId?: string;
   orderNumber?: string;
   total?: number;
@@ -346,18 +348,36 @@ export async function recordWalkInSale(input: WalkInSaleInput): Promise<WalkInSa
 
     // The sale and stock transaction is already committed. Notification failure
     // must not cause the cashier to retry and create a duplicate sale.
-    await notifyStaffOfWalkInSale(data[0].out_order_id).catch((e) =>
-      console.error("[walk-in-sale] staff email notification failed:", e)
-    );
+    let emailWarning: string | undefined;
+    await notifyStaffOfWalkInSale(data[0].out_order_id).catch((e) => {
+      console.error("[walk-in-sale] staff email notification failed:", e);
+      emailWarning = describeEmailError(e);
+    });
 
     return {
       ok: true,
       orderId: data[0].out_order_id,
       orderNumber: data[0].out_order_number,
+      emailWarning,
       total: lines.reduce((sum, l) => sum + l.final_price * l.quantity, 0),
     };
   } catch (error) {
     console.error("[walk-in-sale] unexpected error:", error);
     return { ok: false, error: "Something went wrong. Nothing was saved. Please try again." };
   }
+}
+
+/** Turns an email-sending error into a plain sentence for the till. */
+function describeEmailError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (msg.includes("missing")) {
+    return "The sale email wasn't sent: RESEND_API_KEY or ORDER_NOTIFICATION_EMAIL isn't set in Vercel.";
+  }
+  if (msg.includes("only send testing emails") || msg.includes("verify a domain")) {
+    return "The sale email wasn't sent: Resend's test sender can only email the Resend account owner. Verify beccanenabeautystudio.com in Resend, or use the account owner's email in ORDER_NOTIFICATION_EMAIL.";
+  }
+  if (msg.includes("401") || msg.includes("403") || msg.toLowerCase().includes("api key")) {
+    return `The sale email wasn't sent: Resend refused the request (${msg.slice(0, 160)}).`;
+  }
+  return `The sale email wasn't sent (${msg.slice(0, 160)}).`;
 }

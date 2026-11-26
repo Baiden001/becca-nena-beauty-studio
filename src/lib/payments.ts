@@ -109,12 +109,19 @@ export async function notifyStaffOfWalkInSale(orderId: string): Promise<void> {
     .single();
   if (orderError || !order) throw new Error("Walk-in order not found for notification");
 
-  const [{ data: items }, { data: seller }] = await Promise.all([
+  const [{ data: items }, { data: seller }, { data: payParts }] = await Promise.all([
     supabase.from("order_items").select("product_name, quantity, subtotal").eq("order_id", orderId),
     order.sold_by ? supabase.from("users").select("name, email").eq("id", order.sold_by).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from("order_payments").select("method, amount").eq("order_id", orderId).order("created_at"),
   ]);
   const customer = order.customers as unknown as { name: string; phone: string | null; whatsapp: string | null; email: string | null } | null;
-  const method = ({ cash: "Cash", mobile_money: "Mobile Money", card: "Card", pos_terminal: "POS Terminal", bank_transfer: "Bank Transfer" } as Record<string, string>)[order.payment_method ?? ""] ?? "Not specified";
+  const methodName = (m: string | null | undefined) =>
+    ({ cash: "Cash", mobile_money: "Mobile Money", card: "Card", pos_terminal: "POS Terminal", bank_transfer: "Bank Transfer" } as Record<string, string>)[m ?? ""] ?? "Not specified";
+  // A split payment lists every part, e.g. "Mobile Money GH₵100 + Cash GH₵140".
+  const method =
+    payParts && payParts.length > 1
+      ? payParts.map((p) => `${methodName(p.method)} ${cedis(Number(p.amount))}`).join(" + ")
+      : methodName(payParts?.[0]?.method ?? order.payment_method);
   const total = cedis(Number(order.estimated_total));
   const itemLines = (items ?? []).map((i) => `${i.quantity} x ${i.product_name} (${cedis(Number(i.subtotal))})`);
   const text = [

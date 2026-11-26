@@ -70,12 +70,41 @@ function normaliseUrl(value) {
 
 const siteOrigin = () => normaliseUrl(settings.siteUrl);
 
+// Addresses the shop's own site has redirected the till to (e.g. the main
+// domain sending visitors on to www.). Trusted for this run of the app.
+const redirectedOrigins = new Set();
+
+const bareHost = (host) => host.replace(/^www\./, "");
+
 function isOurs(url) {
   try {
-    return new URL(url).origin === siteOrigin();
+    const u = new URL(url);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    const ours = new URL(siteOrigin());
+    // beccanenabeautystudio.com and www.beccanenabeautystudio.com are the same shop.
+    if (u.protocol === ours.protocol && u.port === ours.port && bareHost(u.hostname) === bareHost(ours.hostname)) {
+      return true;
+    }
+    return redirectedOrigins.has(u.origin);
   } catch {
     return false;
   }
+}
+
+/** Trust where the shop's own site redirects to (server redirects only). */
+function followSiteRedirects(win) {
+  win.webContents.on("will-redirect", (_e, url) => {
+    try {
+      const target = new URL(url);
+      const from = win.webContents.getURL();
+      // Only redirects that start on our site (or the first load of it) count.
+      if (target.protocol === new URL(siteOrigin()).protocol && (!from || from.startsWith("file:") || isOurs(from))) {
+        redirectedOrigins.add(target.origin);
+      }
+    } catch {
+      /* ignore malformed */
+    }
+  });
 }
 
 // ───────────────────────── windows ─────────────────────────
@@ -160,6 +189,7 @@ function createTillWindow() {
   });
   tillWindow.maximize();
   tillWindow.once("ready-to-show", () => tillWindow.show());
+  followSiteRedirects(tillWindow);
   lockDownNavigation(tillWindow);
 
   // No connection: show a friendly page that retries by itself.
@@ -308,15 +338,30 @@ async function openDrawer(contents) {
 // Only the shop's own pages (and the settings window) may use these.
 function fromOurSite(event) {
   const url = event.senderFrame?.url || "";
-  return isOurs(url);
+  if (isOurs(url)) return true;
+  console.warn(`[bn-pos] blocked printer/drawer request from ${url} (site is ${siteOrigin()})`);
+  return false;
 }
 
+const notAllowed = (event) => {
+  let host = "";
+  try {
+    host = new URL(event.senderFrame?.url || "").host;
+  } catch {
+    /* unknown */
+  }
+  return {
+    ok: false,
+    error: `this page (${host || "unknown address"}) isn't the till's website (${new URL(siteOrigin()).host}). Check Till → Settings → Website address.`,
+  };
+};
+
 ipcMain.handle("bn:print", (event) => {
-  if (!fromOurSite(event)) return { ok: false, error: "Not allowed" };
+  if (!fromOurSite(event)) return notAllowed(event);
   return printContents(event.sender);
 });
 ipcMain.handle("bn:open-drawer", (event) => {
-  if (!fromOurSite(event)) return { ok: false, error: "Not allowed" };
+  if (!fromOurSite(event)) return notAllowed(event);
   return openDrawer(event.sender);
 });
 ipcMain.handle("bn:drawer-on-cash", (event) => fromOurSite(event) && Boolean(settings.drawerOnCash));
