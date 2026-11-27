@@ -57,6 +57,15 @@ export interface DayTotal {
   count: number;
 }
 
+export interface DiscountGiven {
+  orderId: string;
+  orderNumber: string;
+  paidAt: string;
+  amount: number;
+  reason: string;
+  givenBy: string;
+}
+
 export interface EndOfDay {
   date: string;
   /** Last day of the period (same as date for a single day). */
@@ -76,6 +85,8 @@ export interface EndOfDay {
   sales: SaleRow[];
   /** The money that came in, grouped the way the shop thinks about it. */
   groups: PaymentGroup[];
+  /** Discounts staff gave at the till (on top of product sale prices). */
+  discountsGiven: DiscountGiven[];
   days: DayTotal[];
 }
 
@@ -129,19 +140,42 @@ export async function loadSalesReport(from: string, to: string): Promise<EndOfDa
   const end = new Date(Date.parse(`${to}T00:00:00Z`) + DAY_MS);
   const supabase = createAdminClient();
 
+  const BASE_COLS = "id, order_number, channel, payment_method, estimated_total, discount_total, sold_by, paid_at, status";
+  const loadOrders = (cols: string) =>
+    fetchAll((a, b) =>
+      supabase
+        .from("orders")
+        .select(cols)
+        .eq("payment_status", "paid")
+        .neq("status", "cancelled")
+        .gte("paid_at", start.toISOString())
+        .lt("paid_at", end.toISOString())
+        .order("paid_at", { ascending: true })
+        .range(a, b)
+    ) as unknown as Promise<
+      {
+        id: string;
+        order_number: string;
+        channel: "online" | "walk_in";
+        payment_method: PaymentMethod | null;
+        estimated_total: number;
+        discount_total: number;
+        sold_by: string | null;
+        paid_at: string | null;
+        status: string;
+        manual_discount?: number;
+        discount_reason?: string | null;
+        discount_approved_by?: string | null;
+      }[]
+    >;
+
   let orders, returns;
   try {
     [orders, returns] = await Promise.all([
-      fetchAll((a, b) =>
-        supabase
-          .from("orders")
-          .select("id, order_number, channel, payment_method, estimated_total, discount_total, sold_by, paid_at, status")
-          .eq("payment_status", "paid")
-          .neq("status", "cancelled")
-          .gte("paid_at", start.toISOString())
-          .lt("paid_at", end.toISOString())
-          .order("paid_at", { ascending: true })
-          .range(a, b)
+      // Discount columns come from supabase/sale-discounts.sql; without them
+      // the report still works, just without the discount list.
+      loadOrders(`${BASE_COLS}, manual_discount, discount_reason, discount_approved_by`).catch((e) =>
+        String(e?.message ?? e).includes("manual_discount") ? loadOrders(BASE_COLS) : Promise.reject(e)
       ),
       fetchAll((a, b) =>
         supabase
@@ -218,8 +252,19 @@ export async function loadSalesReport(from: string, to: string): Promise<EndOfDa
   let gross = 0;
   let discounts = 0;
 
+  const discountsGiven: DiscountGiven[] = [];
   for (const o of orders) {
     const total = Number(o.estimated_total) || 0;
+    if (Number(o.manual_discount) > 0) {
+      discountsGiven.push({
+        orderId: o.id,
+        orderNumber: o.order_number,
+        paidAt: o.paid_at ?? "",
+        amount: Number(o.manual_discount),
+        reason: o.discount_reason ?? "",
+        givenBy: names.get(o.discount_approved_by ?? o.sold_by ?? "") ?? "Unknown staff member",
+      });
+    }
     gross += total;
     discounts += Number(o.discount_total) || 0;
 
@@ -314,6 +359,7 @@ export async function loadSalesReport(from: string, to: string): Promise<EndOfDa
     date,
     endDate: to,
     groups,
+    discountsGiven: discountsGiven.reverse(),
     days: [...dayMap.values()],
     salesCount: orders.length,
     itemsSold,

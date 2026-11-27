@@ -104,7 +104,8 @@ export async function notifyStaffOfWalkInSale(orderId: string): Promise<void> {
   const supabase = createAdminClient();
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("order_number, estimated_total, payment_method, created_at, sold_by, customers(name, phone, whatsapp, email)")
+    // "*" so the email keeps working whether or not the discount columns exist yet.
+    .select("*, customers(name, phone, whatsapp, email)")
     .eq("id", orderId)
     .single();
   if (orderError || !order) throw new Error("Walk-in order not found for notification");
@@ -124,6 +125,10 @@ export async function notifyStaffOfWalkInSale(orderId: string): Promise<void> {
       : methodName(payParts?.[0]?.method ?? order.payment_method);
   const total = cedis(Number(order.estimated_total));
   const itemLines = (items ?? []).map((i) => `${i.quantity} x ${i.product_name} (${cedis(Number(i.subtotal))})`);
+  const tillDiscount = Number((order as { manual_discount?: number }).manual_discount ?? 0);
+  const discountReason = (order as { discount_reason?: string | null }).discount_reason ?? "";
+  const discountLine =
+    tillDiscount > 0 ? `Discount given: -${cedis(tillDiscount)}${discountReason ? ` (${discountReason})` : ""} by ${seller?.name ?? "staff"}` : "";
   const text = [
     `NEW WALK-IN SALE #${order.order_number}: ${total}`,
     `Date: ${new Date(order.created_at).toLocaleString("en-GH")}`,
@@ -132,9 +137,9 @@ export async function notifyStaffOfWalkInSale(orderId: string): Promise<void> {
     `Phone: ${customer?.phone ?? ""}`,
     `WhatsApp: ${customer?.whatsapp ?? ""}`,
     `Payment: ${method}`,
-    "", "Items:", ...itemLines, "", `Total: ${total}`,
+    "", "Items:", ...itemLines, "", ...(discountLine ? [discountLine] : []), `Total: ${total}`,
   ].join("\n");
-  const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:auto;color:#2b2320"><p style="font-size:12px;letter-spacing:.12em;color:#8a7a72">NEW WALK-IN SALE</p><h2>#${escapeHtml(order.order_number)} · ${escapeHtml(total)}</h2><p><b>Sold by:</b> ${escapeHtml(seller?.name ?? "Staff")}${seller?.email ? ` (${escapeHtml(seller.email)})` : ""}</p><p><b>Customer:</b> ${escapeHtml(customer?.name ?? "Walk-in customer")}</p><p><b>Phone:</b> ${escapeHtml(customer?.phone ?? "")}</p><p><b>Payment:</b> ${escapeHtml(method)}</p><p><b>Date:</b> ${escapeHtml(new Date(order.created_at).toLocaleString("en-GH"))}</p><h3>Items</h3><ul>${itemLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul><h3>Total: ${escapeHtml(total)}</h3></div>`;
+  const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:auto;color:#2b2320"><p style="font-size:12px;letter-spacing:.12em;color:#8a7a72">NEW WALK-IN SALE</p><h2>#${escapeHtml(order.order_number)} · ${escapeHtml(total)}</h2><p><b>Sold by:</b> ${escapeHtml(seller?.name ?? "Staff")}${seller?.email ? ` (${escapeHtml(seller.email)})` : ""}</p><p><b>Customer:</b> ${escapeHtml(customer?.name ?? "Walk-in customer")}</p><p><b>Phone:</b> ${escapeHtml(customer?.phone ?? "")}</p><p><b>Payment:</b> ${escapeHtml(method)}</p><p><b>Date:</b> ${escapeHtml(new Date(order.created_at).toLocaleString("en-GH"))}</p><h3>Items</h3><ul>${itemLines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>${discountLine ? `<p style="color:#b0413e"><b>${escapeHtml(discountLine)}</b></p>` : ""}<h3>Total: ${escapeHtml(total)}</h3></div>`;
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },

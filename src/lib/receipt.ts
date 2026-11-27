@@ -52,6 +52,10 @@ export interface ReceiptData {
   amountTendered?: number | null;
   /** Change given back. Worked out from amountTendered and the total when left out. */
   change?: number;
+  /** Discount given on the whole sale at the till (GH₵). */
+  extraDiscount?: number;
+  /** Why it was given, printed beside it. */
+  extraDiscountNote?: string;
 }
 
 const ROOT_ID = "bn-receipt-root";
@@ -113,8 +117,11 @@ const RECEIPT_CSS = `
 
 export function buildReceiptBody(r: ReceiptData, origin: string): string {
   const subtotal = r.items.reduce((s, i) => s + i.regularPrice * i.quantity, 0);
-  const total = r.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-  const discount = Math.max(0, subtotal - total);
+  const itemsTotal = r.items.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+  const discount = Math.max(0, subtotal - itemsTotal);
+  // A discount given at the till comes off after the item prices.
+  const extra = Math.min(Math.max(0, r.extraDiscount ?? 0), itemsTotal);
+  const total = Math.round((itemsTotal - extra) * 100) / 100;
   const customer = r.customerName?.trim();
 
   const rows = r.items
@@ -159,6 +166,11 @@ export function buildReceiptBody(r: ReceiptData, origin: string): string {
   <table class="kv">
     <tr><td>Subtotal</td><td>${esc(money(subtotal))}</td></tr>
     <tr><td>Discount</td><td>${esc(money(discount))}</td></tr>
+    ${
+      extra > 0
+        ? `<tr><td>Special discount${r.extraDiscountNote ? `<br><span class="small">${esc(r.extraDiscountNote)}</span>` : ""}</td><td>-${esc(money(extra))}</td></tr>`
+        : ""
+    }
   </table>
 
   <hr>

@@ -6,6 +6,7 @@ import { Archive, Printer } from "lucide-react";
 import type { EndOfDay } from "@/lib/end-of-day";
 import { formatCedis } from "@/lib/pricing";
 import { desktop, printSlip, RECEIPT_CONFIG, slipHelpers } from "@/lib/receipt";
+import { DiscountsGiven } from "@/components/admin/discounts-given";
 
 const { esc, money, stamp } = slipHelpers;
 
@@ -93,6 +94,14 @@ export function EndOfDayReport({ report, isToday, printedBy }: { report: EndOfDa
     ${row("Items sold", String(report.itemsSold))}
     ${row("Gross sales", money(report.grossSales))}
     ${row("Discounts given", money(report.discounts))}
+    ${
+      report.discountsGiven.length
+        ? row(
+            `  incl. at the till (${report.discountsGiven.length})`,
+            money(report.discountsGiven.reduce((s, d) => s + d.amount, 0))
+          )
+        : ""
+    }
     ${row(`Refunds (${report.refundCount})`, `-${money(report.refunds)}`)}
   </table>
   <hr>
@@ -325,6 +334,8 @@ export function EndOfDayReport({ report, isToday, printedBy }: { report: EndOfDa
           )}
         </section>
       </div>
+
+      <DiscountsGiven items={report.discountsGiven} />
 
       <section className="rounded-xl border border-rose/15 bg-white">
         <h2 className="border-b border-rose/10 px-5 py-3.5 text-sm font-semibold text-brown">

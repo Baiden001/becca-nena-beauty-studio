@@ -128,6 +128,11 @@ export interface OrderRow {
   channel: SalesChannel;
   payment_method: PaymentMethod | null;
   sold_by: string | null;
+  /** Discount given on the whole sale (GH₵), 0 when none. */
+  manual_discount: number;
+  discount_reason: string | null;
+  /** Staff member who gave the discount. */
+  discount_approved_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -272,6 +277,9 @@ export interface Database {
             final_price: number;
           }[];
           p_payments?: { method: PaymentMethod; amount: number; reference?: string | null }[] | null;
+          p_manual_discount?: number;
+          p_discount_reason?: string | null;
+          p_discount_approved_by?: string | null;
         };
         Returns: { out_order_id: string; out_order_number: string }[];
       };

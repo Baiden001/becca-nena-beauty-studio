@@ -15,6 +15,7 @@ import {
   ScanBarcode,
   Search,
   ShoppingBasket,
+  BadgePercent,
   Trash2,
   UserRound,
   X,
@@ -33,6 +34,7 @@ import { formatCedis } from "@/lib/pricing";
 import { holdSale, readHeldSales, removeHeldSale, type HeldSale } from "@/lib/held-sales";
 import { PosTopBar, useOnline } from "./pos-top-bar";
 import { PaymentPanel, methodLabel as labelOf, type PaymentResult } from "./payment-panel";
+import { DiscountDialog, type AppliedDiscount } from "./discount-dialog";
 
 interface Line {
   product: SaleProduct;
@@ -78,6 +80,8 @@ export function PosRegister({
   const [refreshing, startRefresh] = useTransition();
 
   const [query, setQuery] = useState("");
+  const [discount, setDiscount] = useState<AppliedDiscount | null>(null);
+  const [showDiscount, setShowDiscount] = useState(false);
   const [category, setCategory] = useState<string>("all");
   const [lines, setLines] = useState<Line[]>([]);
   const [customerName, setCustomerName] = useState("");
@@ -133,9 +137,12 @@ export function PosRegister({
 
   const qtyInCart = useMemo(() => new Map(lines.map((l) => [l.product.id, l.quantity])), [lines]);
 
-  const total = lines.reduce((s, l) => s + l.product.price * l.quantity, 0);
+  const itemsTotal = lines.reduce((s, l) => s + l.product.price * l.quantity, 0);
   const regularTotal = lines.reduce((s, l) => s + Math.max(l.product.regularPrice, l.product.price) * l.quantity, 0);
-  const savings = regularTotal - total;
+  const savings = regularTotal - itemsTotal;
+  // A discount on the whole sale, given at the till.
+  const discountAmt = discount ? Math.min(discount.amount, itemsTotal) : 0;
+  const total = Math.round((itemsTotal - discountAmt) * 100) / 100;
   const itemCount = lines.reduce((s, l) => s + l.quantity, 0);
 
   function addProduct(input: SaleProduct) {
@@ -180,9 +187,19 @@ export function PosRegister({
     setLines((cur) => cur.filter((l) => l.product.id !== id));
   }
 
+  // If items are taken off so the sale drops below the discount, remove it
+  // so it can be entered again for the new total.
+  useEffect(() => {
+    if (discount && itemsTotal < discount.amount - 0.001) {
+      setDiscount(null);
+      setError("The discount was removed because the sale is now smaller than it. Add it again if needed.");
+    }
+  }, [itemsTotal, discount]);
+
   function clearSale() {
     linesRef.current = []; // so a scan straight after sees an empty sale
     setLines([]);
+    setDiscount(null);
     setCustomerName("");
     setCustomerPhone("");
     setNotes("");
@@ -327,6 +344,7 @@ export function PosRegister({
       customerName,
       customerPhone,
       notes: notes.trim(),
+      discount: discount && discountAmt > 0 ? { amount: discountAmt, reason: discount.reason } : undefined,
     });
     setBusy(false);
 
@@ -353,6 +371,8 @@ export function PosRegister({
         p.payments.length > 1 ? p.payments.map((x) => ({ label: labelOf(x.method), amount: x.amount })) : undefined,
       amountTendered: p.tendered,
       change: p.change,
+      extraDiscount: discountAmt > 0 ? discountAmt : undefined,
+      extraDiscountNote: discount && discountAmt > 0 ? discount.reason : undefined,
     };
     setCompleted({
       emailWarning: result.emailWarning,
@@ -391,8 +411,8 @@ export function PosRegister({
   }
 
   // Keyboard shortcuts and scanner capture (when the payment screen is closed).
-  const keyState = useRef({ paying, completed, lines, showHeld });
-  keyState.current = { paying, completed, lines, showHeld };
+  const keyState = useRef({ paying, completed, lines, showHeld, showDiscount });
+  keyState.current = { paying, completed, lines, showHeld, showDiscount };
   const actions = useRef({ openPayment, hold, newSale, processCode });
   actions.current = { openPayment, hold, newSale, processCode };
 
@@ -402,7 +422,7 @@ export function PosRegister({
 
     const onKey = (e: KeyboardEvent) => {
       const s = keyState.current;
-      if (s.paying) return; // the payment screen handles its own keys
+      if (s.paying || s.showDiscount) return; // those screens handle their own keys
 
       if (s.completed) {
         // Scanning the next customer's first item starts the new sale with it.
@@ -663,9 +683,43 @@ export function PosRegister({
       <div className="border-t border-rose/15 bg-cream/50 px-4 pb-4 pt-3">
         {savings > 0 && (
           <div className="flex justify-between text-sm text-taupe">
-            <span>Discounts</span>
+            <span>Sale prices</span>
             <span className="tabular-nums text-brown">−{formatCedis(savings)}</span>
           </div>
+        )}
+        {discount && discountAmt > 0 ? (
+          <div className="mb-1 flex items-start justify-between gap-2 rounded-lg bg-rose-light/30 px-2.5 py-1.5 text-sm">
+            <div className="min-w-0">
+              <p className="font-medium text-brown">
+                Discount {discount.label !== formatCedis(discountAmt) ? `(${discount.label})` : ""}
+              </p>
+              <p className="truncate text-xs text-taupe">
+                {discount.reason} · by {staffName}
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="tabular-nums text-brown">−{formatCedis(discountAmt)}</span>
+              <button
+                type="button"
+                onClick={() => setDiscount(null)}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-taupe hover:bg-white hover:text-red-600"
+                aria-label="Remove discount"
+              >
+                <X size={14} aria-hidden />
+              </button>
+            </div>
+          </div>
+        ) : (
+          lines.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowDiscount(true)}
+              className="mb-1 flex items-center gap-1.5 rounded-lg py-1 text-sm text-taupe hover:text-brown"
+            >
+              <BadgePercent size={15} aria-hidden />
+              Add discount
+            </button>
+          )
         )}
         <div className="flex items-baseline justify-between">
           <span className="text-sm font-medium text-brown">Total</span>
@@ -1042,6 +1096,19 @@ export function PosRegister({
             </div>
           </div>
         </div>
+      )}
+
+      {showDiscount && (
+        <DiscountDialog
+          saleTotal={itemsTotal}
+          staffName={staffName}
+          onApply={(d) => {
+            setDiscount(d);
+            setShowDiscount(false);
+            setError(null);
+          }}
+          onClose={() => setShowDiscount(false)}
+        />
       )}
 
       {paying && (

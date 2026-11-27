@@ -29,6 +29,18 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
     soldBy = seller?.name ?? null;
   }
 
+  // Discount given at the till (from supabase/sale-discounts.sql).
+  const tillDiscount = Number(order.manual_discount ?? 0);
+  let discountBy: string | null = null;
+  if (tillDiscount > 0 && order.discount_approved_by) {
+    const { data: giver } = await supabase
+      .from("users")
+      .select("name")
+      .eq("id", order.discount_approved_by)
+      .maybeSingle();
+    discountBy = giver?.name ?? null;
+  }
+
   const { data: items } = await supabase
     .from("order_items")
     .select("*")
@@ -139,6 +151,8 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
               })),
               paymentMethod: receiptMethod,
               payments: payments.length > 1 ? payments.map(({ label, amount }) => ({ label, amount })) : undefined,
+              extraDiscount: tillDiscount > 0 ? tillDiscount : undefined,
+              extraDiscountNote: tillDiscount > 0 ? order.discount_reason ?? undefined : undefined,
             }}
           />
         </div>
@@ -238,10 +252,22 @@ export default async function AdminOrderDetailPage({ params }: { params: { id: s
             <span>Subtotal</span>
             <span>{formatCedis(order.subtotal)}</span>
           </div>
-          {order.discount_total > 0 && (
+          {order.discount_total - tillDiscount > 0.004 && (
             <div className="flex justify-between text-rose">
-              <span>Discount</span>
-              <span>−{formatCedis(order.discount_total)}</span>
+              <span>Sale prices</span>
+              <span>−{formatCedis(order.discount_total - tillDiscount)}</span>
+            </div>
+          )}
+          {tillDiscount > 0 && (
+            <div className="flex justify-between gap-3 text-rose">
+              <span>
+                Discount given
+                <span className="block text-xs text-taupe">
+                  {order.discount_reason}
+                  {discountBy ? ` · by ${discountBy}` : ""}
+                </span>
+              </span>
+              <span className="whitespace-nowrap">−{formatCedis(tillDiscount)}</span>
             </div>
           )}
           <div className="flex justify-between border-t border-rose/20 pt-2 text-base font-medium text-brown">

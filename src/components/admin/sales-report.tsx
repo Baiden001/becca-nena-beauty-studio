@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Banknote, Building2, CreditCard, Globe, Smartphone, type LucideIcon } from "lucide-react";
 import type { EndOfDay, PaymentGroup, StockSummary } from "@/lib/end-of-day";
 import { formatCedis } from "@/lib/pricing";
+import { DiscountsGiven } from "@/components/admin/discounts-given";
 
 // The owner's sales report: money by payment type, daily sales, employees,
 // best sellers and stock. Lays out in columns on desktop and stacks on phones.
@@ -129,6 +130,8 @@ export function SalesReport({ report, stock }: { report: EndOfDay; stock: StockS
           )}
         </section>
       </div>
+
+      <DiscountsGiven items={report.discountsGiven} showDate={report.days.length > 1} />
 
       {/* Employees, best sellers, stock */}
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">

@@ -81,6 +81,12 @@ export async function findSaleForReturn(
 
   const customer = order.customers as unknown as { name: string } | null;
 
+  // A sale with a discount given at the till cost the customer less than the
+  // item prices; refunds are that share of the price, as the database works out.
+  const itemsSum = (items ?? []).reduce((s, i) => s + Number(i.final_price) * i.quantity, 0);
+  const paid = Number(order.estimated_total);
+  const ratio = itemsSum > paid + 0.004 && itemsSum > 0 ? paid / itemsSum : 1;
+
   return {
     ok: true,
     sale: {
@@ -96,7 +102,7 @@ export async function findSaleForReturn(
         name: i.product_name,
         soldQuantity: i.quantity,
         returnedQuantity: returnedByItem.get(i.id) ?? 0,
-        unitPrice: Number(i.final_price),
+        unitPrice: Math.round(Number(i.final_price) * ratio * 100) / 100,
       })),
     },
   };

@@ -185,6 +185,8 @@ export interface WalkInSaleInput {
   paymentMethod: PaymentMethod;
   /** For a split payment, e.g. GH₵100 MoMo + GH₵140 cash. Must add up to the total. */
   payments?: SalePayment[];
+  /** Discount on the whole sale, given by the staff member ringing it up. */
+  discount?: { amount: number; reason: string };
   customerName?: string;
   customerPhone?: string;
   notes?: string;
@@ -241,6 +243,21 @@ export async function recordWalkInSale(input: WalkInSaleInput): Promise<WalkInSa
 
     if (productsError || !products || products.length !== wanted.size) {
       return { ok: false, error: "A product in this sale could not be found. Please start again." };
+    }
+
+    // Discount on the whole sale: recorded with its reason and the staff
+    // member who gave it. The database checks it isn't more than the sale.
+    let discount = 0;
+    let discountReason: string | null = null;
+    let discountApprovedBy: string | null = null;
+    if (input.discount && Number(input.discount.amount) > 0) {
+      const amount = Math.round(Number(input.discount.amount) * 100) / 100;
+      const reason = (input.discount.reason ?? "").trim().slice(0, 120);
+      if (!Number.isFinite(amount)) return { ok: false, error: "The discount amount is invalid." };
+      if (!reason) return { ok: false, error: "Give a reason for the discount." };
+      discount = amount;
+      discountReason = reason;
+      discountApprovedBy = staff.id;
     }
 
     const lines = products.map((p) => ({
@@ -318,11 +335,21 @@ export async function recordWalkInSale(input: WalkInSaleInput): Promise<WalkInSa
       p_notes: input.notes?.trim() || null,
       p_lines: lines,
       ...(payments.length ? { p_payments: payments } : {}),
+      ...(discount > 0
+        ? { p_manual_discount: discount, p_discount_reason: discountReason, p_discount_approved_by: discountApprovedBy }
+        : {}),
     });
 
     if (error || !data?.length) {
       console.error("[walk-in-sale] failed:", error);
       const message = error?.message ?? "";
+      if (message.includes("p_manual_discount") || message.includes("manual_discount")) {
+        return {
+          ok: false,
+          error:
+            "The till needs a one-time database update for discounts (supabase/sale-discounts.sql). Nothing was saved.",
+        };
+      }
       if (message.includes("p_payments") || message.includes("order_payments")) {
         return {
           ok: false,
@@ -334,6 +361,7 @@ export async function recordWalkInSale(input: WalkInSaleInput): Promise<WalkInSa
         message.includes("Not enough stock") ||
         message.includes("no longer exists") ||
         message.includes("do not add up") ||
+        message.includes("discount") ||
         message.includes("more than zero")
       ) {
         return { ok: false, error: message };
@@ -359,7 +387,7 @@ export async function recordWalkInSale(input: WalkInSaleInput): Promise<WalkInSa
       orderId: data[0].out_order_id,
       orderNumber: data[0].out_order_number,
       emailWarning,
-      total: lines.reduce((sum, l) => sum + l.final_price * l.quantity, 0),
+      total: Math.round((lines.reduce((sum, l) => sum + l.final_price * l.quantity, 0) - discount) * 100) / 100,
     };
   } catch (error) {
     console.error("[walk-in-sale] unexpected error:", error);
