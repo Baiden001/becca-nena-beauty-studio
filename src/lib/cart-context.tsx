@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { formatCedis } from "@/lib/pricing";
 
 export interface CartLine {
   productId: string;
@@ -25,6 +26,24 @@ interface CartContextValue {
   updateQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
   clear: () => void;
+  /** True once the saved cart has been loaded from this browser. */
+  hydrated: boolean;
+  /**
+   * Bring the cart up to date with the shop: current photo, name and price;
+   * products no longer for sale removed; quantities capped at what's in stock.
+   * Returns a sentence per change, for telling the shopper.
+   */
+  syncWithShop: (
+    fresh: {
+      id: string;
+      name: string;
+      slug: string;
+      imageUrl: string | null;
+      regularPrice: number;
+      currentPrice: number;
+      stock: number;
+    }[]
+  ) => string[];
   itemCount: number;
   subtotal: number;
   discountTotal: number;
@@ -92,6 +111,38 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setLines([]);
   }, []);
 
+  const syncWithShop = useCallback<CartContextValue["syncWithShop"]>(
+    (fresh) => {
+      const byId = new Map(fresh.map((f) => [f.id, f]));
+      const notes: string[] = [];
+      const next: CartLine[] = [];
+      for (const line of lines) {
+        const f = byId.get(line.productId);
+        if (!f || f.stock < 1) {
+          notes.push(`${line.name} is no longer available and was removed.`);
+          continue;
+        }
+        if (Math.abs(f.currentPrice - line.currentPrice) > 0.004) {
+          notes.push(`${f.name} is now ${formatCedis(f.currentPrice)} each.`);
+        }
+        const quantity = Math.min(line.quantity, f.stock);
+        if (quantity < line.quantity) notes.push(`Only ${f.stock} of ${f.name} left, so the quantity was lowered.`);
+        next.push({
+          ...line,
+          name: f.name,
+          slug: f.slug,
+          imageUrl: f.imageUrl,
+          regularPrice: f.regularPrice,
+          currentPrice: f.currentPrice,
+          quantity,
+        });
+      }
+      setLines(next);
+      return notes;
+    },
+    [lines]
+  );
+
   const { itemCount, subtotal, discountTotal, total } = useMemo(() => {
     const itemCount = lines.reduce((sum, l) => sum + l.quantity, 0);
     const subtotal = lines.reduce((sum, l) => sum + l.regularPrice * l.quantity, 0);
@@ -105,6 +156,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     updateQuantity,
     removeItem,
     clear,
+    hydrated,
+    syncWithShop,
     itemCount,
     subtotal,
     discountTotal,

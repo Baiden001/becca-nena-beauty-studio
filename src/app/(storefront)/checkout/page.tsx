@@ -3,11 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
+import { useCartRefresh } from "@/lib/use-cart-refresh";
 import { formatCedis } from "@/lib/pricing";
 import { placeOrder } from "@/app/actions/orders";
 
 export default function CheckoutPage() {
   const { lines, subtotal, discountTotal, total } = useCart();
+  // Make sure the summary shows today's prices before the customer pays.
+  useCartRefresh();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -118,11 +121,11 @@ export default function CheckoutPage() {
           <p className="eyebrow">Order summary</p>
           <ul className="mt-4 space-y-3 text-sm">
             {lines.map((l) => (
-              <li key={l.productId} className="flex justify-between text-brown">
+              <li key={l.productId} className="flex justify-between gap-3 text-brown">
                 <span>
                   {l.quantity} × {l.name}
                 </span>
-                <span>{formatCedis(l.currentPrice * l.quantity)}</span>
+                <span className="whitespace-nowrap">{formatCedis(l.currentPrice * l.quantity)}</span>
               </li>
             ))}
           </ul>
